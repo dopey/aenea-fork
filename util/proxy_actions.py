@@ -1,7 +1,6 @@
 """performs black magic on the dragonfly actions objects to force them to
    forward their actions to a remote server."""
 
-import comsat
 import types
 import pyparsing
 
@@ -12,6 +11,7 @@ except ImportError:
 
 import proxy
 communications = proxy.communications
+from keycodes import keycodes
 
 class ProxyBase(object):
   pass
@@ -19,7 +19,7 @@ class ProxyBase(object):
 ################################################################################
 # Key
 
-# mapping from windows key names to the equivalent linux symbols (where different). 
+# mapping from windows key names to the equivalent linux symbols (where different).
 WINDOWS_MAPPING = {"pgup":"Prior", "pgdown":"Next", "backspace":"BackSpace",
                    "del":"Delete", "backtick":"grave", "caret":"asciicircum",
                    "dot":"period", "dquote":"quotedbl", "exclamation":"exclam",
@@ -41,7 +41,7 @@ def _get_key_symbols():
     with open("keys.txt") as keyfile:
       return [line.strip() for line in keyfile] + list(WINDOWS_MAPPING)
   except Exception:
-    with open("C:\\NatLink\\NatLink\\MacroSystem\\keys.txt") as keyfile:
+    with open("Z:\\aenea\\util\\keys.txt") as keyfile:
       return [line.strip() for line in keyfile] + list(WINDOWS_MAPPING)
 
 _modifier_keys = {
@@ -72,7 +72,7 @@ class ProxyKey(ProxyBase, dragonfly.DynStrActionBase):
   """As Dragonfly's Key except the valid modifiers are a, c, s for alt,
      control and shift respectively, w indicates super and h
      indicates hyper."""
-     
+
   _parser = _make_key_parser()
   _text_clause = (pyparsing.Literal("[") + pyparsing.Word(pyparsing.alphanums) +
                   pyparsing.Literal("]"))
@@ -84,7 +84,7 @@ class ProxyKey(ProxyBase, dragonfly.DynStrActionBase):
         return ["sleep %i" % int(sleeptime)]
       else:
         return []
-     
+
     actions = []
     for key in spec.split(","):
       try:
@@ -139,6 +139,33 @@ class ProxyText(ProxyBase, dragonfly.DynStrActionBase):
   def _execute_events(self, events):
     with communications as proxy:
       proxy.callText(events)
+
+################################################################################
+# Events
+
+class ProxyEvents(ProxyBase, dragonfly.DynStrActionBase):
+  def _parse_spec(self, spec):
+    return spec
+
+  def _execute_events(self, events):
+    with communications as proxy:
+      proxy.callEvents(events)
+
+################################################################################
+# NumberCode
+
+class ProxyNumberCode(ProxyBase, dragonfly.DynStrActionBase):
+  def _parse_spec(self, spec):
+    return spec
+
+  def _execute_events(self, number):
+    with communications as proxy:
+      print number
+      for num in list(number):
+          print num
+          event_str = "key--code=%s" % keycodes[num]
+          print event_str
+          proxy.callEvents(event_str)
 
 ################################################################################
 # Mouse

@@ -3,6 +3,8 @@ import proxy_contexts
 
 Key = proxy_actions.ProxyKey
 Text = proxy_actions.ProxyText
+Events = proxy_actions.ProxyEvents
+NumberCode = proxy_actions.ProxyNumberCode
 Mouse = proxy_actions.ProxyMouse
 NoAction = proxy_actions.NoAction
 MousePhantomClick = proxy_actions.ProxyMousePhantomClick

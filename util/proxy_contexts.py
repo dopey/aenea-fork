@@ -3,6 +3,8 @@
 import re
 import proxy
 import types
+import traceback
+import sys
 
 try:
   import dragonfly

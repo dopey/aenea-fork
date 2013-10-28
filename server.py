@@ -1,6 +1,54 @@
 #!/usr/bin/python
 
-import comsat, sys, os, time, random
+import comsat, sys, os, time, random, applescript
+from keycodes import keycodes
+from dictionary_grammars import DIGITS
+
+
+scpt = scpt = applescript.AppleScript('''
+    on stroke(msg)
+        tell application "System Events"
+            keystroke msg
+        end tell
+    end stroke
+
+    on code(theNum, mod1, mod2)
+        set theNum to theNum as number
+        tell application "System Events"
+            if (mod1 is "") and (mod2 is "") then
+                key code theNum
+            else if (mod1 is "") and (mod2 is "command") then
+                key code theNum using command down
+            else if (mod1 is "") and (mod2 is "option") then
+                key code theNum using option down
+            else if (mod1 is "") and (mod2 is "control") then
+                key code theNum using control down
+            else if (mod1 is "") and (mod2 is "shift") then
+                key code theNum using shift down
+            else if (mod1 is "command") and (mod2 is "control") then
+                key code theNum using {command down, control down}
+            else if (mod1 is "command") and (mod2 is "option") then
+                key code theNum using {command down, option down}
+            else if (mod1 is "command") and (mod2 is "shift") then
+                key code theNum using {command down, shift down}
+            else if (mod1 is "control") and (mod2 is "option") then
+                key code theNum using {control down, option down}
+            else if (mod1 is "control") and (mod2 is "shift") then
+                key code theNum using {control down, shift down}
+            else if (mod1 is "option") and (mod2 is "shift") then
+                key code theNum using {option down, shift down}
+            end if
+        end tell
+    end code
+
+    on getActiveWindow()
+        tell application "System Events"
+            set frontApp to first application process whose frontmost is true
+            set frontAppName to name of frontApp
+        end tell
+        return frontAppName
+    end getActiveWindow
+''')
 
 # to help see when the server has started while in a bash loop
 for i in range(random.randint(1, 10)):
@@ -27,49 +75,130 @@ class Handler(object):
     command_string = "%s %s" % (executable, command)
     sys.stderr.write(command_string + "\n")
     os.system(command_string)
-  
+
   @staticmethod
   def readCommand(command, executable="xdotool"):
     with os.popen("%s %s" % (executable, command), "r") as fd:
       rval = fd.read()
-#    sys.stderr.write("%s %s > %s\n" % (executable, command, rval))
+    sys.stderr.write("%s %s > %s\n" % (executable, command, rval))
     return rval
-  
+
   @staticmethod
-  def writeCommand(message, executable="xdotool"):
-    with os.popen("%s type --file -" % executable, "w") as fd:
-      fd.write(message)
-    sys.stderr.write("echo \"%s\" | %s type --file -\n" % (message.replace("\n", "\\n"), executable))
+  def writeText(message, executable="xdotool"):
+    scpt.call('stroke', message)
+
+  @staticmethod
+  def writeKey(keyCode, mods=['', '']):
+    scpt.call('code', keyCode, mods[0], mods[1])
+
+
+  def callEvents(self, events):
+    """Call each event in order"""
+    print "EVENTS"
+    print events
+    for event in events.split(';'):
+      print event
+      eventType, args = event.split('--')
+      if eventType == 'key':
+        self.callKey(args)
+      elif eventType == 'text':
+        self.callText(args)
+      elif eventType == 'number':
+        self.callNumber(args)
+
+
+  def callNumber(self, events):
+    """Call number using keystrokes"""
+    print events
+    args = events.split('&')
+    number = args[0]
+    for arg in args[1:]:
+        name, value = arg.split('=')
+        if name == 'modifiers':
+            mods = value.split(',')
+            for mod in mods:
+                if mod == 'text':
+                    print number
+                    number = number.replace('one', '1')
+                    number = number.replace('zero', '0')
+                    number = number.replace(' ', '')
+                    print number
+
+    for num in list(number):
+        self.writeKey(keycodes[num])
+
+
+  def callText(self, events):
+    """Types a string as is."""
+    if events:
+      print events
+      args = events.split('&')
+      message = args[0]
+      first = False
+      for arg in args[1:]:
+        name, value = arg.split('=')
+        if name == 'modifiers':
+          mods = value.split(',')
+          for mod in mods:
+            if mod == 'lower':
+              message = message.lower()
+            elif mod == 'first':
+              words = message.split(' ')
+              message = "".join([word[0] for word in words])
+            elif mod == 'upper':
+              message = message.upper()
+
+      print message
+      self.writeText(message)
+
+
+  def callKey(self, event):
+    """Call key with given modifiers and extras"""
+    keyCode = ''
+    mods = ['' for x in range(2)]
+    num_mods = 0
+    text = ''
+    times = 1
+    repeat = 1
+
+    for arg in event.split('&'):
+      name, value = arg.split('=')
+      if name == 'code':
+        keyCode = value
+      elif name == 'key':
+        keyCode = keycodes[value]
+      elif name == 'modifier':
+        mods[num_mods] = value
+        num_mods += 1
+      elif name == 'times':
+        times = int(value)
+      elif name == 'repeat':
+        repeat = int(value)
+      elif name == 'text':
+        text = value
+
+    if text:
+      keyCode = keycodes[text[0].lower()]
+
+    mods.sort()
+    for i in xrange(repeat):
+      for j in xrange(times):
+        self.writeKey(keyCode, mods)
+
 
   def callGetCurrentWindowProperties(self):
-    window_id, window_title = self.callGetActiveWindow()
-    if window_id is None:
+    """Get a dictionary of properties about the currently active window"""
+    name = self.callGetActiveWindow()
+    print 'NAME: %s' % name
+    if name:
+      properties = {}
+      properties['name'] = name
+      return properties
+    else:
       return {}
-
-    properties = {}
-    for line in self.readCommand("-id %s" % window_id, "xprop").split("\n"):
-      split = line.split(" = ", 1)
-      if len(split) == 2:
-        rawkey, value = split
-        if split[0] in XPROP_PROPERTIES:
-          properties[XPROP_PROPERTIES[rawkey]] = value[1:-1] if "(STRING)" in rawkey else value
-        elif rawkey == "WM_CLASS(STRING)":
-#          try:
-            window_class_name, window_class = value.split('", "')
-            properties["window_class_name"] = window_class_name[1:]
-            properties["window_class"] = window_class[:-1]
-#          except Exception:
-#            sys.stderr.write("could not parse window class", value)
-
-    return properties
 
   def callLog(self, message):
     sys.stderr.write(message + "\n")
-
-  def callText(self, message):
-    """Types a string as is."""
-    if message:
-      self.writeCommand(message)
 
   def callMouse(self, x, y, absolute=True):
     """Moves the mouse to the specified coordinates."""
@@ -92,15 +221,14 @@ class Handler(object):
       keys = keys.split()
     self.runCommand(' '.join("key %s" % key for key in keys))
 
+
   def callGetActiveWindow(self):
     """Returns the window id and title of the active window."""
-    window_id = self.readCommand("getactivewindow")
-    if window_id:
-      window_id = int(window_id)
-      window_title = self.readCommand("getwindowname %i" % window_id).strip()
-      return window_id, window_title
+    name = scpt.call('getActiveWindow')
+    if name:
+      return name
     else:
-      return None, None
+      return None
 
   def callSetIonWorkspace(self, workspace):
     """Set the current ion workspace to a number from 1 to 6"""
@@ -141,7 +269,7 @@ class Handler(object):
 
   def callReloadConfiguration(self):
     pass
-#    self.callRaw(["keydown Alt_L", "key space", "keyup Alt_L", 
+#    self.callRaw(["keydown Alt_L", "key space", "keyup Alt_L",
 #                           "sleep 0.05",
 #                           "keydown Alt_L", "key k", "keydown Alt_L", "key 1"])
 
@@ -177,20 +305,6 @@ class Handler(object):
     x, y, width, height, screen = self.callGetGeometry()
     dx, dy = map(int, map(float, event.split()[1:]))
     return ["mousemove %i %i" % (x + dx, y + dy)]
-
-  def callEvents(self, events):
-    transformed_events = [[]]
-    for event in events:
-      if event.startswith("mousemove_active"):
-        transformed_events[-1].extend(self._transform_relative_mouse_event(event))
-      elif event.split()[0] in XDOTOOL_COMMAND_BREAK:
-        transformed_events[-1].append(event)
-        transformed_events.append([])
-      else:
-        transformed_events[-1].append(event)
-
-    for events in transformed_events:
-      self.callRaw(events)
 
   def callReadRawCommand(self, event, command="xdotool"):
     return self.readCommand(event, command)
