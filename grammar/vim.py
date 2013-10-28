@@ -138,8 +138,8 @@ class VimTextManipulation(MappingRule):
     "cut [<n>]": Events("number--%(n)d;key--code=7"),
     #DELETE till letter
     "dip [<n>]": Events("number--%(n)d;key--key=d;key--key=f"),
-    "dip [<text>]": Events("key--key=d;key--key=f;key--text=%(text)s"),
-    "dip case [<text>]": Events("key--key=d;key--key=f;key--text=%(text)s&modifier=shift"),
+    "dip [<text>]": Events("key--key=d;key--key=f;text--%(text)s&modifiers=first,lower"),
+    "dip case [<text>]": Events("key--key=d;key--key=f;text--%(text)s&modifiers=first,upper"),
     #Insert Mode
     "sip": Events("key--code=1"),
     #------------------#
