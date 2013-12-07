@@ -206,35 +206,48 @@ symbols_rule = Sequence([Repetition(RuleRef(name="z", rule=MappingRule(name="v",
 alphanumeric = [case_alphabet_rule, alphabet_rule, numbers_rule, symbols_rule]
 
 class FindRule(CompoundRule):
-  spec = ("(bind | find | tail | bale) <alphanumeric> [<n>]")
-  extras = [IntegerRef("n", 1, 10), Alternative(alphanumeric, name="alphanumeric")]
-  defaults = {"n": 1}
+    spec = ("[clip | dip | visual] (bind | find | tail | bale) <alphanumeric> [<n>]")
+    extras = [IntegerRef("n", 1, 10), Alternative(alphanumeric, name="alphanumeric")]
+    defaults = {"n": 1}
 
-  def value(self, node, extras):
-    words = node.words()
-    rule = words[0]
-    times = extras["n"]
-    print words
-    print "Times: %d" % times
+    def value(self, node, extras):
+        words = node.words()
+        times = extras["n"]
+
+        if words[0] == 'clip':
+            initial_action = Events('key->key=c')
+            rule = words[1]
+        elif words[0] == 'dip':
+            initial_action = Events('key->key=c')
+            rule = words[1]
+        elif words[0] == 'visual':
+            initial_action = Events('key->key=c')
+            rule = words[1]
+        else:
+            initial_action = Events('text->')
+            rule = words[0]
+
+        print words
+        print "Times: %d" % times
 
 
-    find = escape + Events('key->key=%d;key->key=f' % times)
-    bind = escape + Events('key->key=%d;key->key=f&modifier=shift' % times)
-    bale = escape + Events('key->key=%d;key->key=t&modifier=shift' % times)
-    tail = escape + Events('key->key=%d;key->key=t' % times)
+        find = escape + initial_action + Events('key->key=%d;key->key=f' % times)
+        bind = escape + initial_action + Events('key->key=%d;key->key=f&modifier=shift' % times)
+        bale = escape + initial_action + Events('key->key=%d;key->key=t&modifier=shift' % times)
+        tail = escape + initial_action + Events('key->key=%d;key->key=t' % times)
 
-    search = extras["alphanumeric"][0][0]
-    if rule == 'bind':
-        return (bind + search)
-    elif rule == 'find':
-        return (find + search)
-    elif rule == 'bale':
-        return (bale + search)
-    elif rule == 'tail':
-        return (tail + search)
+        search = extras["alphanumeric"][0][0]
+        if rule == 'bind':
+            return (bind + search)
+        elif rule == 'find':
+            return (find + search)
+        elif rule == 'bale':
+            return (bale + search)
+        elif rule == 'tail':
+            return (tail + search)
 
-  def _process_recognition(self, node, extras):
-    self.value(node, extras).execute()
+    def _process_recognition(self, node, extras):
+        self.value(node, extras).execute()
 
 find_rule = RuleRef(name="find_rule", rule=FindRule(name="i"))
 
