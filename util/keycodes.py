@@ -48,7 +48,7 @@ keycodes = {
     "return": '36',
     "tab": '48',
     "space": '49',
-    "grave": '50',
+    "`": '50',
     "delete": '51',
     "escape": '53',
     "F5": '96'

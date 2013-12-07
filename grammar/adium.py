@@ -12,8 +12,8 @@ grammar = Grammar("adium", context=adium_context)
 
 class AlfredCommand(MappingRule):
     mapping = {
-        "search": Events("key--code=44&modifier=command"),
-        "[<text>]": Events("text--%(text)s")
+        "search": Events("key->code=44&modifier=command"),
+        "[<text>]": Events("text->%(text)s")
     }
     extras = [Dictation("text")]
     defaults = {"text":"", "n":1}

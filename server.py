@@ -2,7 +2,6 @@
 
 import comsat, sys, os, time, random, applescript
 from keycodes import keycodes
-from dictionary_grammars import DIGITS
 
 
 scpt = scpt = applescript.AppleScript('''
@@ -85,6 +84,7 @@ class Handler(object):
 
   @staticmethod
   def writeText(message, executable="xdotool"):
+    print "writeText: %s" % message
     scpt.call('stroke', message)
 
   @staticmethod
@@ -98,7 +98,7 @@ class Handler(object):
     print events
     for event in events.split(';'):
       print event
-      eventType, args = event.split('--')
+      eventType, args = event.split('->')
       if eventType == 'key':
         self.callKey(args)
       elif eventType == 'text':
@@ -110,22 +110,29 @@ class Handler(object):
   def callNumber(self, events):
     """Call number using keystrokes"""
     print events
-    args = events.split('&')
-    number = args[0]
-    for arg in args[1:]:
-        name, value = arg.split('=')
-        if name == 'modifiers':
-            mods = value.split(',')
-            for mod in mods:
-                if mod == 'text':
-                    print number
-                    number = number.replace('one', '1')
-                    number = number.replace('zero', '0')
-                    number = number.replace(' ', '')
-                    print number
+    try:
+        args = events.split('&')
+        number = args[0]
+        for arg in args[1:]:
+            name, value = arg.split('=')
+            if name == 'modifiers':
+                mods = value.split(',')
+                for mod in mods:
+                    if mod == 'text':
+                        print number
+                        number = number.replace('zero', '0')
+                        number = number.replace('one', '1')
+                        number = number.replace('to', '2')
+                        number = number.replace('for', '4')
+                        number = number.replace('.\\point', '.')
+                        number = number.replace(' ', '')
+                        print number
 
-    for num in list(number):
-        self.writeKey(keycodes[num])
+        for num in list(number):
+            self.writeKey(keycodes[num])
+
+    except:
+        return
 
 
   def callText(self, events):
@@ -133,6 +140,9 @@ class Handler(object):
     if events:
       print events
       args = events.split('&')
+      if len(args) == 0 or args[0] == '':
+        return
+
       message = args[0]
       first = False
       for arg in args[1:]:

@@ -152,22 +152,6 @@ class ProxyEvents(ProxyBase, dragonfly.DynStrActionBase):
       proxy.callEvents(events)
 
 ################################################################################
-# NumberCode
-
-class ProxyNumberCode(ProxyBase, dragonfly.DynStrActionBase):
-  def _parse_spec(self, spec):
-    return spec
-
-  def _execute_events(self, number):
-    with communications as proxy:
-      print number
-      for num in list(number):
-          print num
-          event_str = "key--code=%s" % keycodes[num]
-          print event_str
-          proxy.callEvents(event_str)
-
-################################################################################
 # Mouse
 
 class ProxyMouse(ProxyBase, dragonfly.DynStrActionBase):

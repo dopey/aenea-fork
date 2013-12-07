@@ -1,251 +1,320 @@
-from dragonfly import (Grammar, CompoundRule, Choice, Dictation, List, Optional, Literal, Context, MappingRule, IntegerRef, Pause)
+from dragonfly import Config, Section, Item, MappingRule, CompoundRule, Grammar, IntegerRef, Dictation, RuleRef, Alternative, Repetition, Literal, Sequence
 import natlink, os, time
 
 from proxy_nicknames import Key, Text, AppRegexContext, Events
 
-from comsat import ComSat
+from dictionary_grammars import DIGITS, SYMBOLS, ALPHABET, CASE_ALPHABET
 
-from raul import SelfChoice, processDictation, NUMBERS as numbers
-
-from keycodes import keycodes
+from _mac import format_jumble
 
 import aenea
 
-LEADER_KEY = "comma"
-
-leader = Key(LEADER_KEY)
 escape = Key("Escape")
-escape_leader = escape + Pause("30") + leader
 
 vim_context = aenea.global_context & AppRegexContext(name="iTerm")
 
 
 grammar = Grammar("vim", context=vim_context)
+escape = Events("key->key=escape")
+save = escape + Events("text->:w\n")
+_zip = Events("key->key=z&times=2")
+jump = Events("number->%(text)s&modifiers=text;key->key=g&times=2") + _zip
+finish = Events("key->key=4&modifier=shift")
+match = Events("key->key=5&modifier=shift")
+submit = Events("key->code=36")
 
-escape = Events("key--code=53")
 
 
-#class EasyMotion(MappingRule):
-#  mapping = {"easy jump [start] [<place>]":escape_leader + leader + Key("W") + Text("%(place)s"),
-#             "easy jump end [<place>]":escape_leader + leader + Key("E") + Text("%(place)s"),
-#             "easy hop [start] [<place>]":escape_leader + leader + Key("w") + Text("%(place)s"),
-#             "easy hop end [<place>]":escape_leader + leader + Key("e") + Text("%(place)s"),
-#             "easy leap [start] [<place>]":escape_leader + leader + Key("B") + Text("%(place)s"),
-#             "easy leap end [<place>]":escape_leader + leader + Key("g, E") + Text("%(place)s"),
-#             "easy bounce [start] [<place>]":escape_leader + leader + Key("b") + Text("%(place)s"),
-#             "easy bounce end [<place>]":escape_leader + leader + Key("g, e") + Text("%(place)s")}
-#  extras = [Dictation("place")]
-#  default = {"place":""}
-#
-## i guess if you write a vim plugin you get to name it but i can't claim to understand these two...
-#class LustyJuggler(MappingRule):
-#  mapping = {"jug | juggle":escape_leader + Text("lj"),
-#             "(jug | juggle) <n>":escape_leader + Key("l, j, %(n)d") + Pause("20") + Key("Return") + Pause("20") + Key("i")}
-#  extras = [IntegerRef("n", 0, 10)]
-#
-#class LustyExplorer(MappingRule):
-#  mapping = {"rusty":escape_leader + Key("l, r"),
-#             "rusty absolute":escape_leader + Key("r, f"),
-#             "rusty <name>":escape_leader + Key("l, r") + Text("%(name)s"),
-#             "rusty absolute <name>":escape_leader + Key("l, f") + Text("%(name)s")}
-#  extras = [Dictation("name")]
-#
-#class CommandT(MappingRule):
-#  mapping = {"command tea":escape_leader + Key("t"),
-#             "command tea [<text>]":escape_leader + Key("t") + Pause("20") + Text("%(text)s\n"),
-#             "command tea buffer":escape + Text(":CommandTBuffer\n"),
-#             "command tea buffer [<text>]":escape_leader + Key("t") + Pause("20") + Text("%(text)s\n"),
-#             "command tea (tags | tag)":escape + Text(":CommandTTag\n"),
-#             "command tea jump":escape + Text(":CommandTJump\n")}
-#  extras = [Dictation("text")]
-#
-#class Fugitive(MappingRule):
-#  mapping = {"git status":escape + Text(":Gstatus\n"),
-#             "git commit":escape + Text(":Gcommit\n"),
-#             "git diff":escape + Text(":Gdiff\n"),
-#             "git move":escape + Text(":Gmove\n"),
-#             "git remove":escape + Text(":Gremove\n")}
-#
-#class VimCommand(MappingRule):
-#  mapping = {
-#      "vim query [<text>]":escape + Text("/%(text)sa"),
-#      "vim query back [<text>]":escape + Text("?%(text)si"),
-#      "vim search":escape + Text("/\na"),
-#      "vim search back":escape + Text("?\ni"),
-#
-#      "vim write":escape + Text(":w\na"),
-#      "vim write and quit":escape + Text(":wq\na"),
-#      "vim quit bang":escape + Text(":q!\na"),
-#      "vim quit":escape + Text(":q\na"),
-#      "vim undo [<number>]":escape + Text("%(number)dua"),
-#      "vim redo":escape + Text(":redo\na"),
-#      "vim [buf] close":escape + Text(":bd\na"),
-#      "vim [buf] close bang":escape + Text(":bd!\na"),
-#      "<number> go":escape + Text("%(number)dGa"),
-#    }
-#  extras = [IntegerRef("number", 1, 1000), Dictation("text")]
-#  defaults = {"text":"", "number":1}
+def strip_number(words):
+    '''remove trailing number that dictation sometimes adds'''
+    return map((lambda word: word.split('\\')[0]), words)
+
 
 class VimMovement(MappingRule):
   mapping = {
     #JUMP TO LINE
-    "jump <text>": Events("number--%(text)s&modifiers=text;key--key=g&times=2;key--key=z&times=2"),
+    "jump <text>": escape + jump,
+    "jump <text> finish match": escape + jump + finish + match,
     #JUMP BACK
-    "bump": Events("key--code=31&modifier=control"),
+    "bump": Events("key->code=31&modifier=control"),
     #RIGHT
-    "rip [<n>]": Events("key--code=4&times=%(n)d"),
-    "will [<n>]": Events("key--code=13&times=%(n)d"),
-    "wall [<n>]": Events("key--code=13&modifier=shift&times=%(n)d"),
-    "whale": Events("key--code=21&modifier=shift"),
+    "will [<n>]": Events("key->code=13&times=%(n)d"),
+    "wall [<n>]": Events("key->code=13&modifier=shift&times=%(n)d"),
+    "start": Events("key->key=6&modifier=shift"),
     #LEFT
-    "lip [<n>]": Events("key--code=37&times=%(n)d"),
-    "bill [<n>]": Events("key--code=11&times=%(n)d"),
-    "ball [<n>]": Events("key--code=11&modifier=shift&times=%(n)d"),
-    "bale": Events("key--code=22&modifier=shift"),
+    "bill [<n>]": Events("key->code=11&times=%(n)d"),
+    "ball [<n>]": Events("key->code=11&modifier=shift&times=%(n)d"),
+    "finish": finish,
+    "finish match": finish + match,
     #UP
-    "tick [<n>]": Events("key--code=40&times=%(n)d"),
-    "tack [<n>]": Events("key--code=33&modifier=shift&times=%(n)d"),
-    "tow [<n>]": Events("key--code=32&modifier=control&times=%(n)d"),
-    "top": Events("key--code=5&times=2"),
+    "vim up [<n>]": Events("key->key=k&times=%(n)d"),
+    "graph up [<n>]": Events("key->key=[&modifier=shift&times=%(n)d") + _zip,
+    "page up [<n>]": Events("key->key=u&modifier=control&times=%(n)d") + _zip,
+    "top": Events("key->code=5&times=2"),
     #DOWN
-    "bit [<n>]": Events("key--code=38&times=%(n)d"),
-    "bat [<n>]": Events("key--cjde=30&modifier=shift&times=%(n)d"),
-    "bot [<n>]": Events("key--code=2&modifier=control&times=%(n)d"),
-    "bottom": Events("key--code=5&modifier=shift"),
+    "vim down [<n>]": Events("key->key=j&times=%(n)d"),
+    "graph down [<n>]": Events("key->key=]&modifier=shift&times=%(n)d") + _zip,
+    "page down [<n>]": Events("key->key=d&modifier=control&times=%(n)d") + _zip,
+    "bottom": Events("key->code=5&modifier=shift"),
 
-    #FIND on line
-    #------------------#
-    "find [<n>]": Events("key--key=f;number--%(n)d"),
-    "find [<text>]": Events("key--key=f;key--text=%(text)s"),
-    "face [<text>]": Events("key--key=f;key--text=%(text)s&modifier=shift"),
-    "bind [<n>]": Events("key--key=f&modifier=shift;number--%(n)d"),
-    "bind [<text>]": Events("key--key=f&modifier=shift;key--text=%(text)s"),
-    "base [<text>]": Events("key--key=f&modifier=shift;key--text=%(text)s&modifier=shift"),
     #CENTER
-    "zip": Events("key--code=6&times=2"),
+    #------------------#
+    "zip": _zip,
+
+    #NEXT
+    #------------------#
+    "next [<n>]": Events("key->key=n&times=%(n)d"),
+    "previous [<n>]": Events("key->key=n&modifier=shift&times=%(n)d"),
+    "repeat": Events("key->key=.") + save,
   }
-  extras = [Dictation("text"), IntegerRef("n", 1, 1000)]
+  extras = [Dictation("text"), IntegerRef("n", 1, 100)]
   defaults = {"n":1, "text": ""}
 
 class VimTextManipulation(MappingRule):
   mapping = {
-    "undo": escape + Events("key--code=32"),
-    "redo": Events("key--code=15&modifier=control"),
+    "undo": escape + Events("key->key=u") + save,
+    "redo": Events("key->code=15&modifier=control") + save,
 
     #DELETION
     #------------------#
     #Command Mode
-    "cut [<n>]": Events("number--%(n)d;key--code=7"),
-    #DELETE till letter
-    "dip [<n>]": Events("number--%(n)d;key--key=d;key--key=f"),
-    "dip [<text>]": Events("key--key=d;key--key=f;text--%(text)s&modifiers=first,lower"),
-    "dip case [<text>]": Events("key--key=d;key--key=f;text--%(text)s&modifiers=first,upper"),
+    "cut [<n>]": Events("number->%(n)d;key->code=7") + save,
     #Insert Mode
-    "sip": Events("key--code=1"),
+    "sip [<n>]": Events("number->%(n)d;key->key=s"),
     #------------------#
 
-    #DELETE line
+    #DELETE line(s)
     #------------------#
-    "dine [<n>]": Events("number--%(n)d;key--key=d&times=2"),
-    #Insert Mode
-    "chop": Events("key--key=&times=2"),
+    "delete [<n>]": escape + Events("number->%(n)d;key->key=d&times=2") + save,
+    "delete above [<n>]": escape + Events("key->code=126&times=%(n)d;number->%(n)d;key->key=d&times=2") + save,
+    "delete below [<n>]": escape + Events("key->code=125;number->%(n)d;key->key=d&times=2") + save,
+    "delete line [<text>]": escape + jump + Events("number->%(n)d;key->key=d&times=2") + save,
+    #Insert Mode"
+    "chop": escape + Events("key->key=c&times=2"),
+    "chop line [<text>]": escape + jump + Events("key->key=c&times=2"),
     #------------------#
 
     #CUT text into insert mode
     #------------------#
     #CUT text -> insert mode
-    "chip": Events("key--code=8;key--code=14"),
-    "chap": Events("key--code=8;key--code=14&modifier=shift"),
-    #Cut till letter
-    "clip [<n>]": Events("key--key=c;key--key=f;number--%(n)d;"),
-    "clip [<text>]": Events("key--key=c;key--key=f;text--%(text)s&modifiers=first,lower"),
-    "clip case [<text>]": Events("key--key=c;key--key=f;text--%(text)s&modifiers=first,upper"),
+    "chip [<text>]": Events("key->code=8;key->code=14") + Events("text->" + format_jumble("%(text)s")),
+    "chap": Events("key->code=8;key->code=14&modifier=shift"),
     #---------------------#
 
     #INSERTION
     #---------------------#
     #Current Position
-    "after": Events("key--key=a"),
+    "after": Events("key->key=a"),
     #End of Line
-    "laughter": Events("key--key=a&modifier=shift"),
+    "laughter": escape + Events("key->key=a&modifier=shift"),
     #---------------------#
 
     #Add line
     #---------------------#
     #above
-    "add above": Events("key--key=o&modifier=shift") + escape + Events("key--key=j"),
+    "add above": escape + Events("key->key=o&modifier=shift") + escape + Events("key->key=j") + save,
+    "add above line [<text>]": escape + jump + Events("key->key=o&modifier=shift") + escape + Events("key->key=j") + save,
     #below
-    "add below": Events("key--key=o") + escape + Events("key--key=k"),
+    "add below": escape + Events("key->key=o") + escape + Events("key->key=k") + save,
+    "add below line [<text>]": escape + jump + Events("key->key=o") + escape + Events("key->key=k") + save,
     #---------------------#
 
     #Add line for insertion
     #---------------------#
     #above
-    "open above": Events("key--key=o&modifier=shift"),
+    "open above": escape + Events("key->key=o&modifier=shift"),
     #below
-    "open below": Events("key--key=o"),
-    #---------------------#
-
-    #NATO (letter insersion)
-    #---------------------#
-    "nato [<text>]": Events("text--%(text)s&modifiers=first,lower"),
-    "cato [<text>]": Events("text--%(text)s&modifiers=first,upper"),
+    "open below": escape + Events("key->key=o"),
+    #open below specific
+    "open below <text>": escape + jump + Events("key->key=o"),
     #---------------------#
 
     #COPY
     #---------------------#
-    "copy [<n>]": Events("number--%(n)d;key--key=y&times=2"),
-    #"yoink": Events("key--code=16&times=2"),
+    "copy [<n>]": Events("number->%(n)d;key->key=y&times=2"),
+    "copy line [<text>]": jump + Events("key->key=y&times=2"),
+    "from [<text>] copy [<n>]": jump + Events("number->%(n)d;key->key=y&times=2"),
+    "from [<text>] copy jump [<text2>]": jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2") + Events("key->key=y"),
+    "from [<text>] delete [<n>]": jump + Events("number->%(n)d;key->key=d&times=2") + save,
+    "from [<text>] delete jump [<text2>]": jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2") + Events("key->key=x") + save,
+    "from [<text>] replace [<n>]": jump + Events("key->key=v&modifier=shift;key->code=125&times=%(n)d;key->code=126") + Events("key->key=p"),
+
     #---------------------#
 
     #PASTE
     #---------------------#
-    "paste": Events("key--code=35"),
-    "pasta": Events("key--code=35&modifier=shift"),
-    "[<text>]": Events("text--%(text)s")
+    "paste": Events("key->code=35"),
+    "paste below [<text>]": jump + Events("key->key=p"),
+    "replace line [<text>]": jump + Events("key->key=v&modifier=shift") + Events("key->key=p"),
+    "pasta": Events("key->code=35&modifier=shift"),
+    "select pasted": Events("text->gp"),
 
+    #SQUISH lines
+    #---------------------#
+    "squish": Events("key->key=j&modifier=shift"),
 
+    #SEARCH
+    #---------------------#
+    "search pause": Events("key->key=/"),
+    "search [<text>]": Events("key->key=/;text->%(text)s&modifiers=lower") + submit,
+
+    #SNIPPET
+    #---------------------#
+    "snip [<text>]": Events("text->%(text)s;key->key=tab"),
+
+    #ALL TEXT
+    #---------------------#
+    "[<text>]": Events("text->%(text)s&modifiers=lower")
   }
-  extras = [Dictation("text"), IntegerRef("n", 1, 10)]
-  defaults = {"n":1, "text":""}
+  extras = [Dictation("text"), IntegerRef("n", 1, 50), Dictation("text2")]
+  defaults = {"n":1, "text":"", "text2":""}
 
 class VimCommand(MappingRule):
   mapping = {
     "cape": escape,
-    "save": Events("key--key=escape;key--code=41&modifier=shift;key--key=w;key--key=return"),
-    "kwink": Events("key--code=32"),
-    "insert": Events("key--key=i")
+    "save": save,
+    "quit": Events("key->key=escape;key->code=41&modifier=shift;key->key=q;key->key=return"),
+    "insert": Events("key->key=i")
   }
   extras = [Dictation("text"), IntegerRef("n", 1, 10)]
   defaults = {"n":1}
 
 class VimVisual(MappingRule):
   mapping = {
-    "vine": Events("key--key=v&modifier=shift")
+    "visual line": Events("key->key=v&modifier=shift"),
+    "visual block": Events("key->key=v&modifier=control")
   }
   extras = [Dictation("text"), IntegerRef("n", 1, 10)]
   defaults = {"n":1}
 
 class VimBuffer(MappingRule):
   mapping = {
-    "buff left [<n>]": Events("key--key=h&modifier=control&times=%(n)d"),
-    "buff right [<n>]": Events("key--key=l&modifier=control&times=%(n)d")
+    "buff left [<n>]": Events("key->key=h&modifier=control&times=%(n)d"),
+    "buff right [<n>]": Events("key->key=l&modifier=control&times=%(n)d"),
+    "fuzzy buff [<text>]": Events("key->key=p&modifier=control;text->%(text)s&modifiers=first"),
+    "vertical": Events("key->key=v&modifier=control")
   }
   extras = [Dictation("text"), IntegerRef("n", 1, 10)]
-  defaults = {"n":1}
+  defaults = {"n":1, "text":""}
 
 
-#grammar.add_rule(EasyMotion())
-#grammar.add_rule(VimCommand())
-#grammar.add_rule(LustyJuggler())
-#grammar.add_rule(LustyExplorer())
-#grammar.add_rule(CommandT())
-#grammar.add_rule(Fugitive())
+
+alphabet_rule = Sequence([Repetition(RuleRef(name="x", rule=MappingRule(name="t", mapping=ALPHABET)), min=1, max=20)])
+case_alphabet_rule = Sequence([Repetition(RuleRef(name="w", rule=MappingRule(name="s", mapping=CASE_ALPHABET)), min=1, max=20)])
+numbers_rule = Sequence([Repetition(RuleRef(name="y", rule=MappingRule(name="u", mapping=DIGITS)), min=1, max=20)])
+symbols_rule = Sequence([Repetition(RuleRef(name="z", rule=MappingRule(name="v", mapping=SYMBOLS)), min=1, max=20)])
+alphanumeric = [case_alphabet_rule, alphabet_rule, numbers_rule, symbols_rule]
+
+class FindRule(CompoundRule):
+  spec = ("(bind | find | tail | bale) <alphanumeric> [<n>]")
+  extras = [IntegerRef("n", 1, 10), Alternative(alphanumeric, name="alphanumeric")]
+  defaults = {"n": 1}
+
+  def value(self, node, extras):
+    words = node.words()
+    rule = words[0]
+    times = extras["n"]
+    print words
+    print "Times: %d" % times
+
+
+    find = escape + Events('key->key=%d;key->key=f' % times)
+    bind = escape + Events('key->key=%d;key->key=f&modifier=shift' % times)
+    bale = escape + Events('key->key=%d;key->key=t&modifier=shift' % times)
+    tail = escape + Events('key->key=%d;key->key=t' % times)
+
+    search = extras["alphanumeric"][0][0]
+    if rule == 'bind':
+        return (bind + search)
+    elif rule == 'find':
+        return (find + search)
+    elif rule == 'bale':
+        return (bale + search)
+    elif rule == 'tail':
+        return (tail + search)
+
+  def _process_recognition(self, node, extras):
+    self.value(node, extras).execute()
+
+find_rule = RuleRef(name="find_rule", rule=FindRule(name="i"))
+
+
+## Here we define a rule that will allow us to cut or delete to specific places in a line
+class ClipRule(CompoundRule):
+    spec = ("(visual | clip | dip) <alphanumeric> [copy | delete | paste]")
+    extras = [Alternative(alphanumeric, name="alphanumeric")]
+
+    def _process_recognition(self, node, extras):
+        words = node.words()
+        symbol = extras['alphanumeric'][0][0]
+        print words
+        if words[0] == 'clip':
+            (Events('key->key=c') + symbol).execute()
+        elif words[0] == 'dip':
+            (Events('key->key=d') + symbol + save).execute()
+        elif words[0] == 'visual':
+            events = Events('key->key=v') + symbol
+            if words[-1] == 'copy':
+                events += Events('key->key=y')
+            if words[-1] == 'paste':
+                events += Events('key->key=p')
+            if words[-1] == 'delete':
+                events += Events('key->key=x')
+            events.execute()
+
+
+class ReplaceRule(CompoundRule):
+    spec = ("change <alphanumeric>")
+    extras = [Alternative(alphanumeric, name="alphanumeric")]
+
+    def _process_recognition(self, node, extras):
+        words = node.words()
+        print words
+        action = Events('key->key=r')
+        change = extras['alphanumeric'][0][0]
+
+        (action + change + save).execute()
+
+class RepeatRule(CompoundRule):
+    spec = ("repeat next [<n>]")
+    extras = [IntegerRef("n", 1, 100)]
+    defaults = {"n":1}
+
+    def _process_recognition(self, node, extras):
+        words = node.words()
+        print words
+        times = extras['n']
+        for i in xrange(times):
+            Events("key->key=n;key->key=.").execute()
+
+        save.execute()
+
+
+class MacroRule(CompoundRule):
+    spec = ("macro <alphanumeric> [<n>]")
+    extras = [Alternative(alphanumeric, name="alphanumeric"), IntegerRef("n", 1, 100)]
+    defaults = {"n":1}
+
+    def _process_recognition(self, node, extras):
+        words = node.words()
+        print words
+
+        times = Events('key->key=%d' % extras['n'])
+        action = Events('key->key=2&modifier=shift')
+        symbol = extras['alphanumeric'][0][0]
+
+        (times + action + symbol + save).execute()
+
 grammar.add_rule(VimMovement())
 grammar.add_rule(VimTextManipulation())
 grammar.add_rule(VimCommand())
 grammar.add_rule(VimVisual())
 grammar.add_rule(VimBuffer())
+grammar.add_rule(FindRule())
+grammar.add_rule(ClipRule())
+grammar.add_rule(ReplaceRule())
+grammar.add_rule(RepeatRule())
+grammar.add_rule(MacroRule())
 
 grammar.load()
 

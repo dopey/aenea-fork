@@ -1,3 +1,3 @@
 # Host-side config (Linux host receiving commands)
-HOST = "localhost"
-PORT = 8240
+HOST_IP = "192.168.56.1"
+HOST_PORT = 8240

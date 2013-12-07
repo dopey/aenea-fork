@@ -1,5 +1,124 @@
-DIGITS = ["zero", "one", "to", "3", "for", "5", "6", "7", "8", "nine"]
-DIGITS = dict(zip(DIGITS, (chr(ord("0") + i) for i in range(10))))
-DIGITS["niner"] = "9"
-DIGITS["ate"] = "8"
-DIGITS["won"] = "1"
+from proxy_nicknames import Events
+from dragonfly import Config, Section, Item, MappingRule, CompoundRule, Grammar, IntegerRef, Dictation, RuleRef, Alternative, Repetition, Literal, Sequence
+
+
+DIGITS = {}
+DIGITS['zero'] = Events('key->key=0')
+DIGITS['one'] = Events('key->key=1')
+DIGITS['to'] = Events('key->key=2')
+DIGITS['two'] = Events('key->key=2')
+DIGITS["three"] = Events('key->key=3')
+DIGITS["for"] = Events('key->key=4')
+DIGITS["five"] = Events('key->key=5')
+DIGITS["six"] = Events('key->key=6')
+DIGITS["seven"] = Events('key->key=7')
+DIGITS["ate"] = Events('key->key=8')
+DIGITS["eight"] = Events('key->key=8')
+DIGITS["nine"] = Events('key->key=9')
+
+#----------------------------#
+SYMBOLS = {}
+SYMBOLS['tab'] = Events('key->key=tab')
+SYMBOLS['ace'] = Events('key->key=space')
+SYMBOLS['bash'] = Events('text->\\')
+SYMBOLS['backtick'] = Events('text->`')
+SYMBOLS['pipe'] = Events('text->|')
+SYMBOLS['semi'] = Events('key->code=41')
+SYMBOLS['colon'] = Events('text->:')
+SYMBOLS['drip'] = Events('text->,')
+SYMBOLS['dot'] = Events('text->.')
+SYMBOLS['quote'] = Events('text->"')
+
+SYMBOLS['eke'] = Events('key->code=24')
+SYMBOLS['eek'] = Events('key->code=24')
+
+SYMBOLS['bang'] = Events('text->!')
+SYMBOLS['banged'] = Events('text->!')
+SYMBOLS['at'] = Events('text->@')
+SYMBOLS['pound'] = Events('text->#')
+SYMBOLS['dollar'] = Events('text->$')
+SYMBOLS['hyph'] = Events('text->-')
+SYMBOLS['percent'] = Events('key->key=5&modifier=shift')
+SYMBOLS['hat'] = Events('text->^')
+SYMBOLS['amp'] = Events('key->key=7&modifier=shift')
+SYMBOLS['star'] = Events('text->*')
+SYMBOLS['push'] = Events('text->(')
+SYMBOLS['pop'] = Events('text->)')
+SYMBOLS['rail'] = Events('text->_')
+SYMBOLS['cross'] = Events('text->+')
+
+SYMBOLS['quest'] = Events('text->?')
+SYMBOLS['ash'] = Events('text->/')
+SYMBOLS['tick'] = Events("text->'")
+SYMBOLS['tilde'] = Events('text->~')
+SYMBOLS['left curly'] = Events('text->{')
+SYMBOLS['right curly'] = Events('text->}')
+SYMBOLS['right wing'] = Events('text->>')
+SYMBOLS['left wing'] = Events('text-><')
+
+
+#----------------------------#
+ALPHABET = {}
+ALPHABET['alpha'] = Events('key->key=a')
+ALPHABET['beta'] = Events('key->key=b')
+ALPHABET['charlie'] = Events('key->key=c')
+ALPHABET['delta'] = Events('key->key=d')
+ALPHABET['echo'] = Events('key->key=e')
+ALPHABET['foxtrot'] = Events('key->key=f')
+ALPHABET['golf'] = Events('key->key=g')
+ALPHABET['hotel'] = Events('key->key=h')
+ALPHABET['india'] = Events('key->key=i')
+ALPHABET['juliet'] = Events('key->key=j')
+ALPHABET['kilo'] = Events('key->key=k')
+ALPHABET['lima'] = Events('key->key=l')
+ALPHABET['mike'] = Events('key->key=m')
+ALPHABET['november'] = Events('key->key=n')
+ALPHABET['oscar'] = Events('key->key=o')
+ALPHABET['papa'] = Events('key->key=p')
+ALPHABET['quebec'] = Events('key->key=q')
+ALPHABET['romeo'] = Events('key->key=r')
+ALPHABET['sierra'] = Events('key->key=s')
+ALPHABET['tango'] = Events('key->key=t')
+ALPHABET['uniform'] = Events('key->key=u')
+ALPHABET['victor'] = Events('key->key=v')
+ALPHABET['whiskey'] = Events('key->key=w')
+ALPHABET['xray'] = Events('key->key=x')
+ALPHABET['yankee'] = Events('key->key=y')
+ALPHABET['zulu'] = Events('key->key=z')
+
+
+#----------------------------#
+CASE_ALPHABET = {}
+CASE_ALPHABET['case alpha'] = Events('key->key=a&modifier=shift')
+CASE_ALPHABET['case beta'] = Events('key->key=b&modifier=shift')
+CASE_ALPHABET['case charlie'] = Events('key->key=c&modifier=shift')
+CASE_ALPHABET['case delta'] = Events('key->key=d&modifier=shift')
+CASE_ALPHABET['case echo'] = Events('key->key=e&modifier=shift')
+CASE_ALPHABET['case foxtrot'] = Events('key->key=f&modifier=shift')
+CASE_ALPHABET['case golf'] = Events('key->key=g&modifier=shift')
+CASE_ALPHABET['case hotel'] = Events('key->key=h&modifier=shift')
+CASE_ALPHABET['case india'] = Events('key->key=i&modifier=shift')
+CASE_ALPHABET['case juliet'] = Events('key->key=j&modifier=shift')
+CASE_ALPHABET['case kilo'] = Events('key->key=k&modifier=shift')
+CASE_ALPHABET['case lima'] = Events('key->key=l&modifier=shift')
+CASE_ALPHABET['case mike'] = Events('key->key=m&modifier=shift')
+CASE_ALPHABET['case november'] = Events('key->key=n&modifier=shift')
+CASE_ALPHABET['case oscar'] = Events('key->key=o&modifier=shift')
+CASE_ALPHABET['case papa'] = Events('key->key=p&modifier=shift')
+CASE_ALPHABET['case quebec'] = Events('key->key=q&modifier=shift')
+CASE_ALPHABET['case romeo'] = Events('key->key=r&modifier=shift')
+CASE_ALPHABET['case sierra'] = Events('key->key=s&modifier=shift')
+CASE_ALPHABET['case tango'] = Events('key->key=t&modifier=shift')
+CASE_ALPHABET['case uniform'] = Events('key->key=u&modifier=shift')
+CASE_ALPHABET['case victor'] = Events('key->key=v&modifier=shift')
+CASE_ALPHABET['case whiskey'] = Events('key->key=w&modifier=shift')
+CASE_ALPHABET['case xray'] = Events('key->key=x&modifier=shift')
+CASE_ALPHABET['case yankee'] = Events('key->key=y&modifier=shift')
+CASE_ALPHABET['case zulu'] = Events('key->key=z&modifier=shift')
+
+
+
+alphabet_rule = Sequence([Repetition(RuleRef(name="x", rule=MappingRule(name="t", mapping=ALPHABET)), min=1, max=20)])
+numbers_rule = Sequence([Repetition(RuleRef(name="y", rule=MappingRule(name="u", mapping=DIGITS)), min=1, max=20)])
+symbols_rule = Sequence([Repetition(RuleRef(name="z", rule=MappingRule(name="v", mapping=SYMBOLS)), min=1, max=20)])
+alphanumeric = [alphabet_rule, numbers_rule, symbols_rule]

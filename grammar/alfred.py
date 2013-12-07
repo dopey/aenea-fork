@@ -12,9 +12,10 @@ grammar = Grammar("alfred", context=alfred_context)
 
 class AlfredCommand(MappingRule):
     mapping = {
-        "open web":Events("key--code=49&modifier=control") + Pause("20") + Events("text--chrome") + submit,
-        "open talk":Events("key--code=49&modifier=control") + Pause("20") + Events("text--adium") + submit,
-        "open [<text>]":Events("key--code=49&modifier=control") + Pause("20") + Events("text--%(text)s"),
+        "open web":Events("key->code=49&modifier=control") + Pause("20") + Events("text->chrome") + submit,
+        "open talk":Events("key->code=49&modifier=control") + Pause("20") + Events("text->adium") + submit,
+        "open virtual":Events("key->code=49&modifier=control") + Pause("20") + Events("text->Fusion") + submit,
+        "open [<text>]":Events("key->code=49&modifier=control") + Pause("20") + Events("text->%(text)s"),
     }
     extras = [Dictation("text")]
     defaults = {"text":"", "n":1}
