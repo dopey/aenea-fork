@@ -125,31 +125,37 @@ def format_broodingnarrative(text):
   return ""
 
 class FormatRule(CompoundRule):
-  spec = ("[upper | natural] ( proper | camel | rel-path | abs-path | score | "
-          "scope-resolve | jumble | dots | dashes | natword | snakeword | brooding-narrative | capword | caplock | slashes) [<dictation>]")
+    spec = ("[upper | natural] ( proper | camel | rel-path | abs-path | score | "
+            "scope-resolve | jumble | dots | dashes | natword | snakeword | brooding-narrative | capword | caplock | slashes) [<dictation>]")
 
-  extras = [Dictation(name="dictation")]
+    extras = [Dictation(name="dictation")]
 
-  def _process_recognition(self, node, extras):
-    words = node.words()
-    print words
+    def value(self, node):
+        words = node.words()
+        print words
 
-    uppercase = words[0] == "upper"
-    lowercase = words[0] != "natural"
+        uppercase = words[0] == "upper"
+        lowercase = words[0] != "natural"
 
-    if lowercase:
-      words = [word.lower() for word in words]
-    if uppercase:
-      words = [word.upper() for word in words]
+        if lowercase:
+            words = [word.lower() for word in words]
+        if uppercase:
+            words = [word.upper() for word in words]
 
-    words = [word.split("\\", 1)[0].replace("-", "") for word in words]
-    if words[0].lower() in ("upper", "natural"):
-      del words[0]
+        words = [word.split("\\", 1)[0].replace("-", "") for word in words]
+        if words[0].lower() in ("upper", "natural"):
+            del words[0]
 
-    function = globals()["format_%s" % words[0].lower()]
-    formatted = function(words[1:])
+        function = globals()["format_%s" % words[0].lower()]
+        formatted = function(words[1:])
 
-    return Events('text->%s' % formatted).execute()
+        return Events('text->%s' % formatted)
+
+    #def _process_recognition(self, node, extras):
+    #    self.value(node, extras).execute()
+
+
+format_rule = RuleRef(name="format_rule", rule=FormatRule(name="f"))
 
 
 class MultipleSymbolsRule(CompoundRule):
@@ -172,9 +178,18 @@ class MultipleSymbolsRule(CompoundRule):
         events.execute()
 
 
+class LiteralRule(CompoundRule):
+  spec = "<format_rule>"
+
+  extras = [format_rule]
+
+  def _process_recognition(self, node, extras):
+    extras["format_rule"].execute()
+
+
 grammar.add_rule(MacCommand())
-grammar.add_rule(FormatRule())
 grammar.add_rule(MultipleSymbolsRule())
+grammar.add_rule(LiteralRule())
 
 
 grammar.load()

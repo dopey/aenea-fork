@@ -5,7 +5,7 @@ from proxy_nicknames import Key, Text, AppRegexContext, Events
 
 from dictionary_grammars import DIGITS, SYMBOLS, ALPHABET, CASE_ALPHABET
 
-from _mac import format_jumble
+from _mac import format_rule
 
 import aenea
 
@@ -93,13 +93,6 @@ class VimTextManipulation(MappingRule):
     "chop": escape + Events("key->key=c&times=2"),
     "chop line [<text>]": escape + jump + Events("key->key=c&times=2"),
     #------------------#
-
-    #CUT text into insert mode
-    #------------------#
-    #CUT text -> insert mode
-    "chip [<text>]": Events("key->code=8;key->code=14") + Events("text->" + format_jumble("%(text)s")),
-    "chap": Events("key->code=8;key->code=14&modifier=shift"),
-    #---------------------#
 
     #INSERTION
     #---------------------#
