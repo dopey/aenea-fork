@@ -5,7 +5,7 @@ from proxy_nicknames import Key, Text, AppRegexContext, Events
 
 from dictionary_grammars import DIGITS, SYMBOLS, ALPHABET, CASE_ALPHABET
 
-from _mac import format_rule
+from _mac import FormatRule
 
 import aenea
 
@@ -148,8 +148,8 @@ class VimTextManipulation(MappingRule):
 
     #SEARCH
     #---------------------#
-    "search pause": Events("key->key=/"),
-    "search [<text>]": Events("key->key=/;text->%(text)s&modifiers=lower") + submit,
+    #"search pause": Events("key->key=/"),
+    #"search [<text>]": Events("key->key=/;text->%(text)s&modifiers=lower") + submit,
 
     #SNIPPET
     #---------------------#
@@ -243,19 +243,26 @@ class FindRule(CompoundRule):
         self.value(node, extras).execute()
 
 find_rule = RuleRef(name="find_rule", rule=FindRule(name="i"))
+format_rule = RuleRef(name="format_rule", rule=FormatRule(name="k"))
 
 
 ## Here we define a rule that will allow us to cut or delete to specific places in a line
 class ClipRule(CompoundRule):
-    spec = ("(visual | clip | dip) <alphanumeric> [copy | delete | paste]")
-    extras = [Alternative(alphanumeric, name="alphanumeric")]
+    spec = ("(visual | clip | dip) <alphanumeric> [<format_rule>] [copy | delete | paste]")
+    extras = [Alternative(alphanumeric, name="alphanumeric"), format_rule]
 
     def _process_recognition(self, node, extras):
         words = node.words()
         symbol = extras['alphanumeric'][0][0]
+
         print words
+        print extras
+
         if words[0] == 'clip':
-            (Events('key->key=c') + symbol).execute()
+            if extras['format_rule']:
+                (Events('key->key=c') + symbol + extras['format_rule']).execute()
+            else:
+                (Events('key->key=c') + symbol).execute()
         elif words[0] == 'dip':
             (Events('key->key=d') + symbol + save).execute()
         elif words[0] == 'visual':
@@ -280,6 +287,31 @@ class ReplaceRule(CompoundRule):
         change = extras['alphanumeric'][0][0]
 
         (action + change + save).execute()
+
+
+class SearchRule(CompoundRule):
+    spec = ("search [<format_rule>] [ <dictation>]")
+    extras = [Dictation(name="dictation"), format_rule]
+
+    def _process_recognition(self, node, extras):
+        words = node.words()
+        print words
+        print extras
+
+        search = Events('key->key=/')
+
+        if len(words) == 1:
+            action = search
+        else:
+            if 'format_rule' in extras:
+                action = search + extras['format_rule'] + submit
+            else:
+                search_string = 'text->' + ' '.join(words[1:])
+                print search_string
+                action = search + Events(search_string) + submit
+
+        action.execute()
+
 
 class RepeatRule(CompoundRule):
     spec = ("repeat next [<n>]")
@@ -321,6 +353,7 @@ grammar.add_rule(ClipRule())
 grammar.add_rule(ReplaceRule())
 grammar.add_rule(RepeatRule())
 grammar.add_rule(MacroRule())
+grammar.add_rule(SearchRule())
 
 grammar.load()
 
