@@ -125,12 +125,12 @@ class VimTextManipulation(MappingRule):
     #COPY
     #---------------------#
     "copy [<n>]": Events("number->%(n)d;key->key=y&times=2"),
-    "copy line [<text>]": jump + Events("key->key=y&times=2"),
-    "from [<text>] copy [<n>]": jump + Events("number->%(n)d;key->key=y&times=2"),
-    "from [<text>] copy jump [<text2>]": jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2") + Events("key->key=y"),
-    "from [<text>] delete [<n>]": jump + Events("number->%(n)d;key->key=d&times=2") + save,
-    "from [<text>] delete jump [<text2>]": jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2") + Events("key->key=x") + save,
-    "from [<text>] replace [<n>]": jump + Events("key->key=v&modifier=shift;key->code=125&times=%(n)d;key->code=126") + Events("key->key=p"),
+    "copy line [<text>]": escape + jump + Events("key->key=y&times=2"),
+    "from [<text>] copy [<n>]": escape + jump + Events("number->%(n)d;key->key=y&times=2"),
+    "from [<text>] copy jump [<text2>]": escape + jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2") + Events("key->key=y"),
+    "from [<text>] delete [<n>]": escape + jump + Events("number->%(n)d;key->key=d&times=2") + save,
+    "from [<text>] delete jump [<text2>]": escape + jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2") + Events("key->key=x") + save,
+    "from [<text>] replace [<n>]": escape + jump + Events("key->key=v&modifier=shift;key->code=125&times=%(n)d;key->code=126") + Events("key->key=p"),
 
     #---------------------#
 
@@ -138,7 +138,7 @@ class VimTextManipulation(MappingRule):
     #---------------------#
     "paste": Events("key->code=35"),
     "paste below [<text>]": jump + Events("key->key=p"),
-    "replace line [<text>]": jump + Events("key->key=v&modifier=shift") + Events("key->key=p"),
+    "replace line [<text>]": jump + Events("key->key=v&modifier=shift") + Events("key->key=p") + save,
     "pasta": Events("key->code=35&modifier=shift"),
     "select pasted": Events("text->gp"),
 
@@ -260,7 +260,7 @@ class ClipRule(CompoundRule):
 
         if words[0] == 'clip':
             if extras['format_rule']:
-                (Events('key->key=c') + symbol + extras['format_rule']).execute()
+                (Events('key->key=c') + symbol + extras['format_rule'] + save).execute()
             else:
                 (Events('key->key=c') + symbol).execute()
         elif words[0] == 'dip':

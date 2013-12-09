@@ -151,9 +151,6 @@ class FormatRule(CompoundRule):
 
         return Events('text->%s' % formatted)
 
-    #def _process_recognition(self, node, extras):
-    #    self.value(node, extras).execute()
-
 
 format_rule = RuleRef(name="format_rule", rule=FormatRule(name="f"))
 
