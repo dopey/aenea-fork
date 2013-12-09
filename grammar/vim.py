@@ -259,7 +259,7 @@ class ClipRule(CompoundRule):
         print extras
 
         if words[0] == 'clip':
-            if extras['format_rule']:
+            if 'format_rule' in extras:
                 (Events('key->key=c') + symbol + extras['format_rule'] + save).execute()
             else:
                 (Events('key->key=c') + symbol).execute()
