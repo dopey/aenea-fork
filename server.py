@@ -109,16 +109,32 @@ class Handler(object):
 
   def callNumber(self, events):
     """Call number using keystrokes"""
+    print 'NUMBER'
     print events
-    try:
-        args = events.split('&')
-        number = args[0]
+    args = events.split('&')
+    number = args[0]
 
-        for num in list(number):
+    print 'I MA HERE'
+    for arg in args[1:]:
+        name, value = arg.split('=')
+        if name == 'modifiers':
+            mods = value.split(',')
+            for mod in mods:
+                if mod == 'text':
+                    print number
+                    number = number.replace('zero', '0')
+                    number = number.replace('one', '1')
+                    number = number.replace('to', '2')
+                    number = number.replace('for', '4')
+                    number = number.replace('.\\point', '.')
+                    number = number.replace(' ', '')
+                    print number
+
+    for num in list(number):
+        try:
             self.writeKey(keycodes[num])
-
-    except:
-        return
+        except:
+            continue
 
 
   def callText(self, events):

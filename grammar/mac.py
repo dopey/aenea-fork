@@ -88,15 +88,19 @@ def format_score(text):
 def format_camel(text):
   return text[0] + "".join([word[0].upper() + word[1:] for word in text[1:]])
 
-def format_number(text):
-    text = ''.join(text)
+def format_number(words):
+    print 'FORMAT NUMBER'
+    print words
+    text = ''.join(words)
     text = text.replace('zero', '0')
     text = text.replace('one', '1')
     text = text.replace('to', '2')
     text = text.replace('two', '2')
     text = text.replace('three', '3')
+    text = text.replace('thirty', '3')
     text = text.replace('for', '4')
     text = text.replace('four', '4')
+    text = text.replace('fourty', '4')
     text = text.replace('five', '5')
     text = text.replace('six', '6')
     text = text.replace('seven', '7')
