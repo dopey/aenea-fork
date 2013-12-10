@@ -113,20 +113,6 @@ class Handler(object):
     try:
         args = events.split('&')
         number = args[0]
-        for arg in args[1:]:
-            name, value = arg.split('=')
-            if name == 'modifiers':
-                mods = value.split(',')
-                for mod in mods:
-                    if mod == 'text':
-                        print number
-                        number = number.replace('zero', '0')
-                        number = number.replace('one', '1')
-                        number = number.replace('to', '2')
-                        number = number.replace('for', '4')
-                        number = number.replace('.\\point', '.')
-                        number = number.replace(' ', '')
-                        print number
 
         for num in list(number):
             self.writeKey(keycodes[num])

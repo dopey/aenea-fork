@@ -66,7 +66,7 @@ class MacCommand(MappingRule):
         "ticks":            Nested("''"),
         "backticks":        Nested("``"),
 
-        "number <text>":    Events("number->%(text)s&modifiers=text")
+        #"number <text>":    Events("number->%(text)s&modifiers=text")
     }
     extras = [Dictation("text"), IntegerRef("n", 1, 50)]
     defaults = {"n":1, "text":""}
@@ -87,6 +87,24 @@ def format_score(text):
 
 def format_camel(text):
   return text[0] + "".join([word[0].upper() + word[1:] for word in text[1:]])
+
+def format_number(text):
+    text = ''.join(text)
+    text = text.replace('zero', '0')
+    text = text.replace('one', '1')
+    text = text.replace('to', '2')
+    text = text.replace('two', '2')
+    text = text.replace('three', '3')
+    text = text.replace('for', '4')
+    text = text.replace('four', '4')
+    text = text.replace('five', '5')
+    text = text.replace('six', '6')
+    text = text.replace('seven', '7')
+    text = text.replace('eight', '8')
+    text = text.replace('ate', '8')
+    text = text.replace('nine', '9')
+    text = text.replace('divide', '/')
+    return text
 
 def format_proper(text):
   return "".join(word.capitalize() for word in text)
@@ -126,7 +144,7 @@ def format_broodingnarrative(text):
 
 class FormatRule(CompoundRule):
     spec = ("[upper | natural] ( proper | camel | rel-path | abs-path | score | "
-            "scope-resolve | jumble | dots | dashes | natword | snakeword | brooding-narrative | capword | caplock | slashes) [<dictation>]")
+            "scope-resolve | jumble | dots | dashes | natword | snakeword | brooding-narrative | capword | caplock | slashes | number) [<dictation>]")
 
     extras = [Dictation(name="dictation")]
 
@@ -149,7 +167,10 @@ class FormatRule(CompoundRule):
         function = globals()["format_%s" % words[0].lower()]
         formatted = function(words[1:])
 
-        return Events('text->%s' % formatted)
+        if words[0].lower() == 'number':
+            return Events("number->%s" % formatted)
+        else:
+            return Events('text->%s' % formatted)
 
 
 format_rule = RuleRef(name="format_rule", rule=FormatRule(name="f"))
