@@ -54,20 +54,9 @@ class MacCommand(MappingRule):
         "plus":             Events('key->key=space;key->code=24&modifier=shift;key->key=space'),
         "minus":             Events('key->key=space;key->code=27;key->key=space'),
 
-        #### Nested
-        "circle":           Events("text->()"),
-        "nest circle":      Nested("()"),
-        "square":           Nested("[]"),
-        "box":              Nested("[]"),
-        "diamond":          Nested("<>"),
         "hexy lines":       Nested("{}") + Events("text->\n;key->key=escape;key->key=o&modifier=shift"),
-        "hexy":             Nested("{}"),
-        "quotes":           Nested('""'),
-        "ticks":            Nested("''"),
-        "backticks":        Nested("``"),
-
-        #"number <text>":    Events("number->%(text)s&modifiers=text")
     }
+
     extras = [Dictation("text"), IntegerRef("n", 1, 50)]
     defaults = {"n":1, "text":""}
 
@@ -108,6 +97,7 @@ def format_number(words):
     text = text.replace('ate', '8')
     text = text.replace('nine', '9')
     text = text.replace('divide', '/')
+    text = text.replace('negative', '-')
     return text
 
 def format_proper(text):
@@ -140,15 +130,15 @@ def format_dashes(text):
 def format_slashes(text):
   return "/".join(text)
 
-def format_natword(text):
+def format_natural(text):
   return " ".join(text)
 
 def format_broodingnarrative(text):
   return ""
 
 class FormatRule(CompoundRule):
-    spec = ("[upper | natural] ( proper | camel | rel-path | abs-path | score | "
-            "scope-resolve | jumble | dots | dashes | natword | snakeword | brooding-narrative | capword | caplock | slashes | number) [<dictation>]")
+    spec = ("[upper | lower] ( proper | camel | rel-path | abs-path | score | "
+            "scope-resolve | jumble | dots | dashes | natural | snakeword | brooding-narrative | capword | caplock | slashes | number) [<dictation>]")
 
     extras = [Dictation(name="dictation")]
 
@@ -157,7 +147,7 @@ class FormatRule(CompoundRule):
         print words
 
         uppercase = words[0] == "upper"
-        lowercase = words[0] != "natural"
+        lowercase = words[0] != "lower"
 
         if lowercase:
             words = [word.lower() for word in words]
@@ -165,7 +155,7 @@ class FormatRule(CompoundRule):
             words = [word.upper() for word in words]
 
         words = [word.split("\\", 1)[0].replace("-", "") for word in words]
-        if words[0].lower() in ("upper", "natural"):
+        if words[0].lower() in ("upper", "lower"):
             del words[0]
 
         function = globals()["format_%s" % words[0].lower()]
@@ -178,6 +168,36 @@ class FormatRule(CompoundRule):
 
 
 format_rule = RuleRef(name="format_rule", rule=FormatRule(name="f"))
+
+
+enclosures = {}
+enclosures['circle'] = '()'
+enclosures['box'] = '[]'
+enclosures['diamond'] = '<>'
+enclosures['hexy'] = '{}'
+enclosures['quotes'] = '""'
+enclosures['ticks'] = "''"
+enclosures['backticks'] = '``'
+
+
+class NestRule(CompoundRule):
+    spec = ("[nest] (circle | box | ticks | quotes | hexy | backticks) [<format_rule>]")
+    extras = [format_rule]
+
+    def _process_recognition(self, node, extras):
+        words = node.words()
+        print words
+
+        if words[0] == 'nest':
+            closure = enclosures[words[1]]
+            event = Events("text->%s;key->code=123" % closure)
+            if 'format_rule' in extras:
+                event += extras['format_rule']
+        else:
+            closure = enclosures[words[0]]
+            event = Events("text->%s" % closure)
+
+        event.execute()
 
 
 class MultipleSymbolsRule(CompoundRule):
@@ -212,6 +232,7 @@ class LiteralRule(CompoundRule):
 grammar.add_rule(MacCommand())
 grammar.add_rule(MultipleSymbolsRule())
 grammar.add_rule(LiteralRule())
+grammar.add_rule(NestRule())
 
 
 grammar.load()

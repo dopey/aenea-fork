@@ -48,14 +48,14 @@ class VimMovement(MappingRule):
     "finish match": finish + match,
     #UP
     "vim up [<n>]": Events("key->key=k&times=%(n)d"),
-    "graph up [<n>]": Events("key->key=[&modifier=shift&times=%(n)d") + _zip,
-    "page up [<n>]": Events("key->key=u&modifier=control&times=%(n)d") + _zip,
-    "top": Events("key->code=5&times=2"),
+    "graph up [<n>]": escape + Events("key->key=[&modifier=shift&times=%(n)d") + _zip,
+    "page up [<n>]": escape + Events("key->key=u&modifier=control&times=%(n)d") + _zip,
+    "top": escape + Events("key->code=5&times=2"),
     #DOWN
     "vim down [<n>]": Events("key->key=j&times=%(n)d"),
-    "graph down [<n>]": Events("key->key=]&modifier=shift&times=%(n)d") + _zip,
-    "page down [<n>]": Events("key->key=d&modifier=control&times=%(n)d") + _zip,
-    "bottom": Events("key->code=5&modifier=shift"),
+    "graph down [<n>]": escape + Events("key->key=]&modifier=shift&times=%(n)d") + _zip,
+    "page down [<n>]": escape + Events("key->key=d&modifier=control&times=%(n)d") + _zip,
+    "bottom": escape + Events("key->code=5&modifier=shift"),
 
     #CENTER
     #------------------#
@@ -79,8 +79,6 @@ class VimTextManipulation(MappingRule):
     #------------------#
     #Command Mode
     "cut [<n>]": Events("number->%(n)d;key->code=7") + save,
-    #Insert Mode
-    "sip [<n>]": Events("number->%(n)d;key->key=s"),
     #------------------#
 
     #DELETE line(s)
@@ -128,6 +126,7 @@ class VimTextManipulation(MappingRule):
     "copy line [<text>]": escape + jump + Events("key->key=y&times=2"),
     "from [<text>] copy [<n>]": escape + jump + Events("number->%(n)d;key->key=y&times=2"),
     "from [<text>] copy jump [<text2>]": escape + jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2") + Events("key->key=y"),
+    "from [<text>] copy finish match": escape + jump + Events("key->key=v&modifier=shift;key->key=4&modifier=shift;key->key=5&modifier=shift") + Events("key->key=y"),
     "from [<text>] delete [<n>]": escape + jump + Events("number->%(n)d;key->key=d&times=2") + save,
     "from [<text>] delete jump [<text2>]": escape + jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2") + Events("key->key=x") + save,
     "from [<text>] replace [<n>]": escape + jump + Events("key->key=v&modifier=shift;key->code=125&times=%(n)d;key->code=126") + Events("key->key=p"),
@@ -150,10 +149,6 @@ class VimTextManipulation(MappingRule):
     #---------------------#
     #"search pause": Events("key->key=/"),
     #"search [<text>]": Events("key->key=/;text->%(text)s&modifiers=lower") + submit,
-
-    #SNIPPET
-    #---------------------#
-    "snip [<text>]": Events("text->%(text)s;key->key=tab"),
 
     #ALL TEXT
     #---------------------#
@@ -248,21 +243,29 @@ format_rule = RuleRef(name="format_rule", rule=FormatRule(name="k"))
 
 ## Here we define a rule that will allow us to cut or delete to specific places in a line
 class ClipRule(CompoundRule):
-    spec = ("(visual | clip | dip) <alphanumeric> [<format_rule>] [copy | delete | paste]")
+    spec = ("(visual | clip | dip | sip) [<alphanumeric>] [<format_rule>] [copy | delete | paste]")
     extras = [Alternative(alphanumeric, name="alphanumeric"), format_rule]
 
     def _process_recognition(self, node, extras):
         words = node.words()
-        symbol = extras['alphanumeric'][0][0]
-
         print words
         print extras
+
+        if 'alphanumeric' in extras:
+            symbol = extras['alphanumeric'][0][0]
+        else:
+            symbol = Events('key->key=1')
 
         if words[0] == 'clip':
             if 'format_rule' in extras:
                 (Events('key->key=c') + symbol + extras['format_rule'] + save).execute()
             else:
                 (Events('key->key=c') + symbol).execute()
+        elif words[0] == 'sip':
+            if 'format_rule' in extras:
+                (symbol + Events('key->key=s') + extras['format_rule'] + save).execute()
+            else:
+                (symbol + Events('key->key=s')).execute()
         elif words[0] == 'dip':
             (Events('key->key=d') + symbol + save).execute()
         elif words[0] == 'visual':
@@ -289,8 +292,20 @@ class ReplaceRule(CompoundRule):
         (action + change + save).execute()
 
 
+class SnipRule(CompoundRule):
+    spec = ("snip <format_rule>")
+    extras = [Dictation(name="dictation"), format_rule]
+
+    def _process_recognition(self, node, extras):
+        words = node.words()
+        print words
+        print extras
+
+        (extras['format_rule'] + Events('key->key=tab')).execute()
+
+
 class SearchRule(CompoundRule):
-    spec = ("search [<format_rule>] [ <dictation>]")
+    spec = ("search [<format_rule>] [<dictation>]")
     extras = [Dictation(name="dictation"), format_rule]
 
     def _process_recognition(self, node, extras):
@@ -354,6 +369,7 @@ grammar.add_rule(ReplaceRule())
 grammar.add_rule(RepeatRule())
 grammar.add_rule(MacroRule())
 grammar.add_rule(SearchRule())
+grammar.add_rule(SnipRule())
 
 grammar.load()
 
