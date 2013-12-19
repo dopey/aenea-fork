@@ -194,7 +194,7 @@ symbols_rule = Sequence([Repetition(RuleRef(name="z", rule=MappingRule(name="v",
 alphanumeric = [case_alphabet_rule, alphabet_rule, numbers_rule, symbols_rule]
 
 class FindRule(CompoundRule):
-    spec = ("[clip | dip | visual] (bind | find | tail | bale) <alphanumeric> [<n>]")
+    spec = ("[clip | dip | visual] (bind | find | tail | bale) <alphanumeric> [<n>] [copy | paste]")
     extras = [IntegerRef("n", 1, 10), Alternative(alphanumeric, name="alphanumeric")]
     defaults = {"n": 1}
 
@@ -206,10 +206,10 @@ class FindRule(CompoundRule):
             initial_action = Events('key->key=c')
             rule = words[1]
         elif words[0] == 'dip':
-            initial_action = Events('key->key=c')
+            initial_action = Events('key->key=d')
             rule = words[1]
         elif words[0] == 'visual':
-            initial_action = Events('key->key=c')
+            initial_action = Events('key->key=v')
             rule = words[1]
         else:
             initial_action = Events('text->')
@@ -226,13 +226,23 @@ class FindRule(CompoundRule):
 
         search = extras["alphanumeric"][0][0]
         if rule == 'bind':
-            return (bind + search)
+            events = (bind + search)
         elif rule == 'find':
-            return (find + search)
+            events = (find + search)
         elif rule == 'bale':
-            return (bale + search)
+            events = (bale + search)
         elif rule == 'tail':
-            return (tail + search)
+            events = (tail + search)
+
+        if words[-1] == 'copy':
+            events += Events('key->key=y')
+        elif words[-1] == 'paste':
+            events += Events('key->key=y')
+
+        if words[0] == 'dip':
+            events += save
+
+        return events
 
     def _process_recognition(self, node, extras):
         self.value(node, extras).execute()
@@ -269,13 +279,17 @@ class ClipRule(CompoundRule):
         elif words[0] == 'dip':
             (Events('key->key=d') + symbol + save).execute()
         elif words[0] == 'visual':
-            events = Events('key->key=v') + symbol
+            events = Events('key->key=v')
+            if 'alphanumeric' in extras:
+                events += symbol
+
             if words[-1] == 'copy':
                 events += Events('key->key=y')
-            if words[-1] == 'paste':
+            elif words[-1] == 'paste':
                 events += Events('key->key=p')
-            if words[-1] == 'delete':
+            elif words[-1] == 'delete':
                 events += Events('key->key=x')
+
             events.execute()
 
 

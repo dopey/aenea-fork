@@ -42,6 +42,8 @@ class MacCommand(MappingRule):
         "cape":             escape,
 
         "dribble":          Events("key->key=,;key->key=space"),
+        "colon equals":     Events("key->key=space;key->code=41&modifier=shift;key->code=24;key->key=space"),
+        "plus equals":      Events("key->key=space;key->code=24&modifier=shift;key->code=24;key->key=space"),
         "equals [<n>]":     Events("key->key=space;key->code=24&times=%(n)d;key->key=space"),
         "not equals [<n>]": Events("text-> !;key->code=24&times=%(n)d;key->key=space"),
         "pipes":            Events("text-> || "),

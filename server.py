@@ -114,7 +114,6 @@ class Handler(object):
     args = events.split('&')
     number = args[0]
 
-    print 'I MA HERE'
     for arg in args[1:]:
         name, value = arg.split('=')
         if name == 'modifiers':
