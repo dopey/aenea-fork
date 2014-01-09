@@ -52,6 +52,7 @@ class MacCommand(MappingRule):
         "less":             Events('key->key=space;key->key=,&modifier=shift;key->key=space'),
         "leak":             Events('key->key=space;key->key=,&modifier=shift;key->code=24;key->key=space'),
         "right arrow":      Events('text->-;text->>'),
+        "left arrow":      Events('text-><;text->-'),
 
         "plus":             Events('key->key=space;key->code=24&modifier=shift;key->key=space'),
         "minus":             Events('key->key=space;key->code=27;key->key=space'),

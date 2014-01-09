@@ -130,6 +130,8 @@ class VimTextManipulation(MappingRule):
     "from [<text>] delete [<n>]": escape + jump + Events("number->%(n)d;key->key=d&times=2") + save,
     "from [<text>] delete jump [<text2>]": escape + jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2") + Events("key->key=x") + save,
     "from [<text>] replace [<n>]": escape + jump + Events("key->key=v&modifier=shift;key->code=125&times=%(n)d;key->code=126") + Events("key->key=p"),
+    "from [<text>] visual [<text2>]": escape + jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2"),
+    "from [<text>] visual block [<text2>]": escape + jump + Events("key->key=v&modifier=control") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2"),
 
     #---------------------#
 
@@ -137,13 +139,13 @@ class VimTextManipulation(MappingRule):
     #---------------------#
     "paste": Events("key->code=35"),
     "paste below [<text>]": jump + Events("key->key=p"),
-    "replace line [<text>]": jump + Events("key->key=v&modifier=shift") + Events("key->key=p") + save,
+    "replace line [<text>]": jump + Events("key->key=v&modifier=shift") + Events("key->key=p") + save + Events("key->key=y&times=2"),
     "pasta": Events("key->code=35&modifier=shift"),
     "select pasted": Events("text->gp"),
 
     #SQUISH lines
     #---------------------#
-    "squish": Events("key->key=j&modifier=shift"),
+    "squish [<n>]": Events("key->key=j&modifier=shift&times=%(n)d"),
 
     #SEARCH
     #---------------------#
@@ -170,7 +172,7 @@ class VimCommand(MappingRule):
 class VimVisual(MappingRule):
   mapping = {
     "visual line": Events("key->key=v&modifier=shift"),
-    "visual block": Events("key->key=v&modifier=control")
+    "visual block": Events("key->key=v&modifier=control"),
   }
   extras = [Dictation("text"), IntegerRef("n", 1, 10)]
   defaults = {"n":1}
