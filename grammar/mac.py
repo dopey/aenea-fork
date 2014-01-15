@@ -224,7 +224,7 @@ class MultipleSymbolsRule(CompoundRule):
 
 
 class LiteralRule(CompoundRule):
-  spec = "<format_rule>"
+  spec = "form <format_rule>"
 
   extras = [format_rule]
 

@@ -67,9 +67,10 @@ class ComSat(object):
   def clientConnect(self, host=config.HOST):
       while not self.pocket:
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #sys.stderr.write("HOST: " + host + ", PORT: " + str(config.PORT) + "\n")
         conn.connect((host, config.PORT))
         if conn is not None:
-          sys.stderr.write("client: Client connected.\n")
+          #sys.stderr.write("client: Client connected.\n")
           self.pocket = Pocket(conn)
         else:
           sys.stderr.write("Could not connect.\n")

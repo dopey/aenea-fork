@@ -1,3 +1,3 @@
 # Guest-side config (Windows guest sending commands)
-HOST = "192.168.226.1"
+HOST = "172.16.91.1"
 PORT = 8240

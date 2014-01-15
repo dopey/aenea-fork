@@ -196,7 +196,7 @@ symbols_rule = Sequence([Repetition(RuleRef(name="z", rule=MappingRule(name="v",
 alphanumeric = [case_alphabet_rule, alphabet_rule, numbers_rule, symbols_rule]
 
 class FindRule(CompoundRule):
-    spec = ("[clip | dip | visual] (bind | find | tail | bale) <alphanumeric> [<n>] [copy | paste]")
+    spec = ("[before | after | clip | dip | visual] (bind | find | tail | bale) <alphanumeric> [<n>] [copy | paste]")
     extras = [IntegerRef("n", 1, 10), Alternative(alphanumeric, name="alphanumeric")]
     defaults = {"n": 1}
 
@@ -212,6 +212,9 @@ class FindRule(CompoundRule):
             rule = words[1]
         elif words[0] == 'visual':
             initial_action = Events('key->key=v')
+            rule = words[1]
+        elif words[0] == 'before' or words[0] == 'after':
+            initial_action = Events('text->')
             rule = words[1]
         else:
             initial_action = Events('text->')
@@ -243,6 +246,10 @@ class FindRule(CompoundRule):
 
         if words[0] == 'dip':
             events += save
+        elif words[0] == 'before':
+            events += Events('key->key=i')
+        elif words[0] == 'after':
+            events += Events('key->key=a')
 
         return events
 

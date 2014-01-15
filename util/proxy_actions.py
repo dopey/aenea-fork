@@ -41,7 +41,7 @@ def _get_key_symbols():
     with open("keys.txt") as keyfile:
       return [line.strip() for line in keyfile] + list(WINDOWS_MAPPING)
   except Exception:
-    with open("Z:\\aenea\\util\\keys.txt") as keyfile:
+    with open("Z:\\SHARED\\aenea\\util\\keys.txt") as keyfile:
       return [line.strip() for line in keyfile] + list(WINDOWS_MAPPING)
 
 _modifier_keys = {
