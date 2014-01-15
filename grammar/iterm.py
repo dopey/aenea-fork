@@ -34,7 +34,7 @@ class ItermCommand(MappingRule):
         "get status": Events("text->git status\n"),
         "get pull": Events("text->git pull --rebase origin master\n"),
         "get push": Events("text->git push origin master\n"),
-        "get diff [<text>]": Events("text->git diff --color %(text)s\n"),
+        "get diff [<text>]": Events("text->git diff %(text)s\n"),
         "get add ": Events("text->git add "),
         "get commit ": Events("text->git commit -m \"\";key->code=123"),
         "get log": Events("text->git log\n"),
