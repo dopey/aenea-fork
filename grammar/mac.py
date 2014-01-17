@@ -141,7 +141,7 @@ def format_broodingnarrative(text):
 
 class FormatRule(CompoundRule):
     spec = ("[upper | lower] ( proper | camel | rel-path | abs-path | score | "
-            "scope-resolve | jumble | dots | dashes | natural | snakeword | brooding-narrative | capword | caplock | slashes | number) [<dictation>]")
+            "scope-resolve | jumble | dotword | dashword | natural | snakeword | brooding-narrative | capword | caplock | slashes | number) [<dictation>]")
 
     extras = [Dictation(name="dictation")]
 
@@ -171,6 +171,48 @@ class FormatRule(CompoundRule):
 
 
 format_rule = RuleRef(name="format_rule", rule=FormatRule(name="f"))
+alternatives = [
+    format_rule,
+]
+single_action = Alternative(alternatives)
+# create a repetition of keystroke elements.
+#  This element will match anywhere between 1 and 16 repetitions
+#  of the keystroke elements.  Note that we give this element
+#  the name "sequence" so that it can be used as an extra in
+#  the rule definition below.
+# Note: when processing a recognition, the *value* of this element
+#  will be a sequence of the contained elements: a sequence of
+#  actions.
+sequence = Repetition(single_action, min=1, max=16, name="sequence")
+
+# This is the rule that actually handles recognitions.
+#  When a recognition occurs, it's _process_recognition()
+#  method will be called.  It receives information about the
+#  recognition in the "extras" argument: the sequence of
+#  actions and the number of times to repeat them.
+class RepeatRule(CompoundRule):
+    # Here we define this rule's spoken-form and special elements.
+    spec = "<sequence>"
+
+    extras = [
+        sequence, # Sequence of actions defined above.
+    ]
+    defaults = {
+      "n": 1, # Default repeat count.
+    }
+
+    # This method gets called when this rule is recognized.
+    # Arguments:
+    #  - node -- root node of the recognition parse tree.
+    #  - extras -- dict of the "extras" special elements:
+    #   . extras["sequence"] gives the sequence of actions.
+    #   . extras["n"] gives the repeat count.
+    def _process_recognition(self, node, extras):
+      print('i am here')
+      sequence = extras.get("sequence", [])
+      for action in sequence:
+        action.execute()
+
 
 
 enclosures = {}
@@ -234,8 +276,9 @@ class LiteralRule(CompoundRule):
 
 grammar.add_rule(MacCommand())
 grammar.add_rule(MultipleSymbolsRule())
-grammar.add_rule(LiteralRule())
+#grammar.add_rule(LiteralRule())
 grammar.add_rule(NestRule())
+grammar.add_rule(RepeatRule())
 
 
 grammar.load()
