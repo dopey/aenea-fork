@@ -17,6 +17,7 @@ vim_context = aenea.global_context & AppRegexContext(name="iTerm")
 grammar = Grammar("vim", context=vim_context)
 escape = Events("key->key=escape")
 save = escape + Events("text->:w\n")
+quit = escape + Events("key->code=41&modifier=shift;key->key=q;key->key=return")
 _zip = Events("key->key=z&times=2")
 jump = Events("number->%(text)s&modifiers=text;key->key=g&times=2") + _zip
 finish = Events("key->key=4&modifier=shift")
@@ -163,7 +164,7 @@ class VimCommand(MappingRule):
   mapping = {
     "cape": escape,
     "save": save,
-    "quit": Events("key->key=escape;key->code=41&modifier=shift;key->key=q;key->key=return"),
+    "quit": quit,
     "insert": Events("key->key=i")
   }
   extras = [Dictation("text"), IntegerRef("n", 1, 10)]
@@ -181,6 +182,8 @@ class VimBuffer(MappingRule):
   mapping = {
     "buff left [<n>]": Events("key->key=h&modifier=control&times=%(n)d"),
     "buff right [<n>]": Events("key->key=l&modifier=control&times=%(n)d"),
+    "quit buff left [<n>]": Events("key->key=h&modifier=control&times=%(n)d") + quit,
+    "quit buff right [<n>]": Events("key->key=l&modifier=control&times=%(n)d") + quit,
     "fuzzy buff [<text>]": Events("key->key=p&modifier=control;text->%(text)s&modifiers=first"),
     "vertical": Events("key->key=v&modifier=control")
   }
