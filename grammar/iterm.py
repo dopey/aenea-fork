@@ -11,6 +11,7 @@ grammar = Grammar("iTerm", context=iterm_context)
 
 submit = Events("key->code=36")
 
+
 class ItermCommand(MappingRule):
     mapping = {
         "dear": Events("text->cd\n"),
@@ -20,6 +21,7 @@ class ItermCommand(MappingRule):
         "dear grammar": Events("text->cd $GRAMMAR\n"),
         "dear back": Events("text->cd ../\n"),
         "dear [<text>]": Events("text->cd %(text)s"),
+        "make dear": Events("text->mkdir "),
         "list [<text>]": Events("text->ls -la %(text)s"),
         "tab left [<n>]": Events("key->code=123&modifier=command&times=%(n)d"),
         "tab right [<n>]": Events("key->code=124&modifier=command&times=%(n)d"),
