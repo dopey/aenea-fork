@@ -18,45 +18,76 @@ escape = Events("key->code=53")
 def Nested(command):
   return Text(command) + Events("key->code=123&times=%i" % (len(command) / 2))
 
+sequence_command_table = {
+    "up [<n>]": Events("key->code=126&times=%(n)d"),
+    "down [<n>]": Events("key->code=125&times=%(n)d"),
+    "left [<n>]": Events("key->code=123&times=%(n)d"),
+    "right [<n>]": Events("key->code=124&times=%(n)d"),
+    "dribble":          Events("key->key=,;key->key=space"),
+    "colon equal":     Events("key->key=space;key->code=41&modifier=shift;key->code=24;key->key=space"),
+    "equal [<n>]":     Events("key->key=space;key->code=24&times=%(n)d;key->key=space"),
+    "not equal [<n>]": Events("text-> !;key->code=24&times=%(n)d;key->key=space"),
+    "pipes":            Events("text-> || "),
+    "greater":          Events('key->key=space;key->key=.&modifier=shift;key->key=space'),
+    "greater equal":             Events('key->key=space;key->key=.&modifier=shift;key->code=24;key->key=space'),
+    "less":             Events('key->key=space;key->key=,&modifier=shift;key->key=space'),
+    "less equal":             Events('key->key=space;key->key=,&modifier=shift;key->code=24;key->key=space'),
+    "right arrow":      Events('text->-;text->>'),
+    "left arrow":      Events('text-><;text->-'),
+    "escape":             escape,
+    "plus":             Events('key->key=space;key->code=24&modifier=shift;key->key=space'),
+    "plus equal":      Events("key->key=space;key->code=24&modifier=shift;key->code=24;key->key=space"),
+    "minus":             Events('key->key=space;key->code=27;key->key=space'),
+    "minus equal":      Events("key->key=space;key->code=27;key->code=24;key->key=space"),
 
+    "times":             Events('key->key=space;key->code=28&modifier=shift;key->key=space'),
+    "times equal":      Events("key->key=space;key->code=28&modifier=shift;key->code=24;key->key=space"),
+
+    "times":             Events('key->key=space;key->code=28&modifier=shift;key->key=space'),
+    "times equal":      Events("key->key=space;key->code=28&modifier=shift;key->code=24;key->key=space"),
+}
+
+#---------------------------------------------------------------------------
+# Here we define the keystroke rule.
+
+# This rule maps spoken-forms to actions.  Some of these
+#  include special elements like the number with name "n"
+#  or the dictation with name "text".  This rule is not
+#  exported, but is referenced by other elements later on.
+#  It is derived from MappingRule, so that its "value" when
+#  processing a recognition will be the right side of the
+#  mapping: an action.
+# Note that this rule does not execute these actions, it
+#  simply returns them when it's value() method is called.
+#  For example "up 4" will give the value Key("up:4").
+# More information about Key() actions can be found here:
+#  http://dragonfly.googlecode.com/svn/trunk/dragonfly/documentation/actionkey.html
+class KeystrokeRule(MappingRule):
+  exported = False
+
+  extras = [
+    IntegerRef("n", 1, 10),
+    Dictation("text"),
+    Dictation("text2"),
+    ]
+  defaults = {
+    "n": 1,
+    }
+
+#---------------------------------------------------------------------------
 class MacCommand(MappingRule):
     mapping = {
         # Text entry/manipulation
-        "submit": submit,
+        "submit [<n>]": Events('key->code=36&times=%(n)d'),
         "clear": clear,
         # Window Movement/manipulation
         "screen left [<n>]": Events("key->code=123&modifier=control&times=%(n)d"),
         "screen right [<n>]": Events("key->code=124&modifier=control&times=%(n)d"),
-        "up [<n>]": Events("key->code=126&times=%(n)d"),
-        "down [<n>]": Events("key->code=125&times=%(n)d"),
-        "left [<n>]": Events("key->code=123&times=%(n)d"),
-        "right [<n>]": Events("key->code=124&times=%(n)d"),
 
         #DELETION
         #------------------#
         "dell [<n>]": Events("key->code=51&times=%(n)d"),
         "doll [<n>]": Events("key->code=51&modifier=option&times=%(n)d"),
-        #------------------#
-        #### Various keys
-        "betable [<n>]":        Events("key->key=space&times=%(n)d"),
-        "cape":             escape,
-
-        "dribble":          Events("key->key=,;key->key=space"),
-        "colon equals":     Events("key->key=space;key->code=41&modifier=shift;key->code=24;key->key=space"),
-        "plus equals":      Events("key->key=space;key->code=24&modifier=shift;key->code=24;key->key=space"),
-        "equals [<n>]":     Events("key->key=space;key->code=24&times=%(n)d;key->key=space"),
-        "not equals [<n>]": Events("text-> !;key->code=24&times=%(n)d;key->key=space"),
-        "pipes":            Events("text-> || "),
-        "greater":          Events('key->key=space;key->key=.&modifier=shift;key->key=space'),
-        "geek":             Events('key->key=space;key->key=.&modifier=shift;key->code=24;key->key=space'),
-        "less":             Events('key->key=space;key->key=,&modifier=shift;key->key=space'),
-        "leak":             Events('key->key=space;key->key=,&modifier=shift;key->code=24;key->key=space'),
-        "right arrow":      Events('text->-;text->>'),
-        "left arrow":      Events('text-><;text->-'),
-
-        "plus":             Events('key->key=space;key->code=24&modifier=shift;key->key=space'),
-        "minus":             Events('key->key=space;key->code=27;key->key=space'),
-
         "hexy lines":       Nested("{}") + Events("text->\n;key->key=escape;key->key=o&modifier=shift"),
     }
 
@@ -124,10 +155,10 @@ def format_scoperesolve(text):
 def format_jumble(text):
   return "".join(text)
 
-def format_dots(text):
+def format_dotword(text):
   return ".".join(text)
 
-def format_dashes(text):
+def format_dashword(text):
   return "-".join(text)
 
 def format_slashes(text):
@@ -172,9 +203,11 @@ class FormatRule(CompoundRule):
 
 format_rule = RuleRef(name="format_rule", rule=FormatRule(name="f"))
 alternatives = [
+    RuleRef(rule=KeystrokeRule(mapping=sequence_command_table, name="c")),
     format_rule,
 ]
 single_action = Alternative(alternatives)
+
 # create a repetition of keystroke elements.
 #  This element will match anywhere between 1 and 16 repetitions
 #  of the keystroke elements.  Note that we give this element
@@ -192,7 +225,7 @@ sequence = Repetition(single_action, min=1, max=16, name="sequence")
 #  actions and the number of times to repeat them.
 class RepeatRule(CompoundRule):
     # Here we define this rule's spoken-form and special elements.
-    spec = "<sequence>"
+    spec = "seek <sequence>"
 
     extras = [
         sequence, # Sequence of actions defined above.
@@ -208,7 +241,8 @@ class RepeatRule(CompoundRule):
     #   . extras["sequence"] gives the sequence of actions.
     #   . extras["n"] gives the repeat count.
     def _process_recognition(self, node, extras):
-      print('i am here')
+      words = node.words()
+      print words
       sequence = extras.get("sequence", [])
       for action in sequence:
         action.execute()
@@ -226,7 +260,7 @@ enclosures['backticks'] = '``'
 
 
 class NestRule(CompoundRule):
-    spec = ("[nest] (circle | box | ticks | quotes | hexy | backticks) [<format_rule>]")
+    spec = ("[nest] (circle | box | ticks | quotes | hexy | backticks | diamond) [<format_rule>]")
     extras = [format_rule]
 
     def _process_recognition(self, node, extras):
