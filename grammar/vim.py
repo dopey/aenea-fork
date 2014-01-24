@@ -38,13 +38,8 @@ class VimMovement(MappingRule):
     "jump <text> finish match": escape + jump + finish + match,
     #JUMP BACK
     "bump": Events("key->code=31&modifier=control"),
-    #RIGHT
-    "will [<n>]": Events("key->code=13&times=%(n)d"),
-    "wall [<n>]": Events("key->code=13&modifier=shift&times=%(n)d"),
     "start": Events("key->key=6&modifier=shift"),
     #LEFT
-    "bill [<n>]": Events("key->code=11&times=%(n)d"),
-    "ball [<n>]": Events("key->code=11&modifier=shift&times=%(n)d"),
     "finish": finish,
     "finish match": finish + match,
     #UP
@@ -199,8 +194,12 @@ symbols_rule = Sequence([Repetition(RuleRef(name="z", rule=MappingRule(name="v",
 alphanumeric = [case_alphabet_rule, alphabet_rule, numbers_rule, symbols_rule]
 
 class FindRule(CompoundRule):
-    spec = ("[before | after | clip | dip | visual] (bind | find | tail | bale) <alphanumeric> [<n>] [copy | paste]")
-    extras = [IntegerRef("n", 1, 10), Alternative(alphanumeric, name="alphanumeric")]
+    spec = ("[before | after | clip | dip | visual] (bind | find | tail | bale) <alpha1> [<n>] [copy | paste | cut | (change <alpha2>)]")
+    extras = [
+        IntegerRef("n", 1, 10),
+        Alternative(alphanumeric, name="alpha1"),
+        Alternative(alphanumeric, name="alpha2")
+    ]
     defaults = {"n": 1}
 
     def value(self, node, extras):
@@ -232,7 +231,7 @@ class FindRule(CompoundRule):
         bale = escape + initial_action + Events('key->key=%d;key->key=t&modifier=shift' % times)
         tail = escape + initial_action + Events('key->key=%d;key->key=t' % times)
 
-        search = extras["alphanumeric"][0][0]
+        search = extras["alpha1"][0][0]
         if rule == 'bind':
             events = (bind + search)
         elif rule == 'find':
@@ -242,17 +241,20 @@ class FindRule(CompoundRule):
         elif rule == 'tail':
             events = (tail + search)
 
-        if words[-1] == 'copy':
-            events += Events('key->key=y')
-        elif words[-1] == 'paste':
-            events += Events('key->key=y')
-
         if words[0] == 'dip':
             events += save
         elif words[0] == 'before':
             events += Events('key->key=i')
         elif words[0] == 'after':
             events += Events('key->key=a')
+        elif words[-1] == 'copy':
+            events += Events('key->key=y')
+        elif words[-1] == 'paste':
+            events += Events('key->key=p')
+        elif words[-1] == 'cut':
+            events += Events('key->key=x') + save
+        elif 'change' in words >= 0:
+            events += Events('key->key=r') + extras['alpha2'][0][0] + save
 
         return events
 
@@ -261,12 +263,17 @@ class FindRule(CompoundRule):
 
 find_rule = RuleRef(name="find_rule", rule=FindRule(name="i"))
 format_rule = RuleRef(name="format_rule", rule=FormatRule(name="k"))
+alternatives = [
+    format_rule,
+]
+single_action = Alternative(alternatives)
+sequence = Repetition(single_action, min=1, max=16, name="sequence")
 
 
 ## Here we define a rule that will allow us to cut or delete to specific places in a line
 class ClipRule(CompoundRule):
-    spec = ("(visual | clip | dip | sip) [<alphanumeric>] [<format_rule>] [copy | delete | paste]")
-    extras = [Alternative(alphanumeric, name="alphanumeric"), format_rule]
+    spec = ("(visual | clip | dip | sip) [<alphanumeric>] [<sequence>] [copy | delete | paste]")
+    extras = [Alternative(alphanumeric, name="alphanumeric"), sequence]
 
     def _process_recognition(self, node, extras):
         words = node.words()
@@ -279,13 +286,21 @@ class ClipRule(CompoundRule):
             symbol = Events('key->key=1')
 
         if words[0] == 'clip':
-            if 'format_rule' in extras:
-                (Events('key->key=c') + symbol + extras['format_rule'] + save).execute()
+            if 'sequence' in extras:
+                events = Events('key->key=c') + symbol
+                sequence = extras.get("sequence", [])
+                for action in sequence:
+                    events += action
+                return (events + save).execute()
             else:
                 (Events('key->key=c') + symbol).execute()
         elif words[0] == 'sip':
-            if 'format_rule' in extras:
-                (symbol + Events('key->key=s') + extras['format_rule'] + save).execute()
+            if 'sequence' in extras:
+                events = Events('key->key=s') + symbol
+                sequence = extras.get("sequence", [])
+                for action in sequence:
+                    events += action
+                return (events + save).execute()
             else:
                 (symbol + Events('key->key=s')).execute()
         elif words[0] == 'dip':
@@ -319,39 +334,41 @@ class ReplaceRule(CompoundRule):
 
 
 class SnipRule(CompoundRule):
-    spec = ("snip <format_rule>")
-    extras = [Dictation(name="dictation"), format_rule]
+    spec = ("snip <sequence>")
+    extras = [Dictation(name="dictation"), sequence]
 
     def _process_recognition(self, node, extras):
         words = node.words()
         print words
-        print extras
 
-        (extras['format_rule'] + Events('key->key=tab')).execute()
+        sequence = extras.get("sequence", [])
+        for action in sequence:
+            action.execute()
+        Events('key->key=tab').execute()
 
 
 class SearchRule(CompoundRule):
-    spec = ("search [<format_rule>] [<dictation>]")
-    extras = [Dictation(name="dictation"), format_rule]
+    spec = ("search [<sequence>] [<dictation>]")
+    extras = [Dictation(name="dictation"), sequence]
 
     def _process_recognition(self, node, extras):
         words = node.words()
         print words
-        print extras
 
         search = Events('key->key=/')
 
+        events = search
         if len(words) == 1:
-            action = search
+            return events.execute()
         else:
-            if 'format_rule' in extras:
-                action = search + extras['format_rule'] + submit
+            if 'sequence' in extras:
+                sequence = extras.get("sequence", [])
+                for action in sequence:
+                    events += action
+                return (events + submit).execute()
             else:
                 search_string = 'text->' + ' '.join(words[1:])
-                print search_string
-                action = search + Events(search_string) + submit
-
-        action.execute()
+                return (events + Events(search_string) + submit).execute()
 
 
 class RepeatRule(CompoundRule):
