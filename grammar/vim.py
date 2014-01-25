@@ -126,8 +126,8 @@ class VimTextManipulation(MappingRule):
     "from [<text>] delete [<n>]": escape + jump + Events("number->%(n)d;key->key=d&times=2") + save,
     "from [<text>] delete jump [<text2>]": escape + jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2") + Events("key->key=x") + save,
     "from [<text>] replace [<n>]": escape + jump + Events("key->key=v&modifier=shift;key->code=125&times=%(n)d;key->code=126") + Events("key->key=p"),
-    "from [<text>] visual [<text2>]": escape + jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2"),
-    "from [<text>] visual block [<text2>]": escape + jump + Events("key->key=v&modifier=control") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2"),
+    "from [<text>] visual jump [<text2>]": escape + jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2"),
+    "from [<text>] visual block jump [<text2>]": escape + jump + Events("key->key=v&modifier=control") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2"),
 
     #---------------------#
 
@@ -296,7 +296,7 @@ class ClipRule(CompoundRule):
                 (Events('key->key=c') + symbol).execute()
         elif words[0] == 'sip':
             if 'sequence' in extras:
-                events = Events('key->key=s') + symbol
+                events = symbol + Events('key->key=s')
                 sequence = extras.get("sequence", [])
                 for action in sequence:
                     events += action
