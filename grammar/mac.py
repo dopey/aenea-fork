@@ -15,14 +15,12 @@ submit = Events("key->code=36")
 clear = Events("key->code=51&modifier=command")
 escape = Events("key->code=53")
 
-def Nested(command):
-  return Text(command) + Events("key->code=123&times=%i" % (len(command) / 2))
-
 sequence_command_table = {
     "up [<n>]": Events("key->code=126&times=%(n)d"),
     "down [<n>]": Events("key->code=125&times=%(n)d"),
     "left [<n>]": Events("key->code=123&times=%(n)d"),
     "right [<n>]": Events("key->code=124&times=%(n)d"),
+    "space [<n>]": Events("key->key=space&times=%(n)d"),
     "dribble":          Events("key->key=,;key->key=space"),
     "colon equal":     Events("key->key=space;key->code=41&modifier=shift;key->code=24;key->key=space"),
     "equal [<n>]":     Events("key->key=space;key->code=24&times=%(n)d;key->key=space"),
@@ -45,6 +43,21 @@ sequence_command_table = {
 
     "times":             Events('key->key=space;key->code=28&modifier=shift;key->key=space'),
     "times equal":      Events("key->key=space;key->code=28&modifier=shift;key->code=24;key->key=space"),
+    "circle":           Events('text->()'),
+    "nest circle":      Events('text->();key->code=123'),
+    "diamond":          Events('text-><>'),
+    "nest diamond":     Events('text-><>;key->code=123'),
+    "box":              Events('text->[]'),
+    "nest box":         Events('text->[];key->code=123'),
+    "hexy":             Events('text->{}'),
+    "nest hexy":        Events('text->{};key->code=123'),
+    "ticks":            Events("text->''"),
+    "nest ticks":       Events("text->'';key->code=123"),
+    "quotes":           Events('text->""'),
+    "nest quotes":      Events('text->"";key->code=123'),
+    "backticks":        Events("text->``"),
+    "nest backticks":   Events("text->``;key->code=123"),
+    "hexy lines":       Events("text->{}") + Events("text->\n;key->key=escape;key->key=o&modifier=shift"),
 }
 
 #---------------------------------------------------------------------------
@@ -88,7 +101,7 @@ class MacCommand(MappingRule):
         #------------------#
         "dell [<n>]": Events("key->code=51&times=%(n)d"),
         "doll [<n>]": Events("key->code=51&modifier=option&times=%(n)d"),
-        "hexy lines":       Nested("{}") + Events("text->\n;key->key=escape;key->key=o&modifier=shift"),
+
     }
 
     extras = [Dictation("text"), IntegerRef("n", 1, 50)]
@@ -248,37 +261,6 @@ class RepeatRule(CompoundRule):
         action.execute()
 
 
-
-enclosures = {}
-enclosures['circle'] = '()'
-enclosures['box'] = '[]'
-enclosures['diamond'] = '<>'
-enclosures['hexy'] = '{}'
-enclosures['quotes'] = '""'
-enclosures['ticks'] = "''"
-enclosures['backticks'] = '``'
-
-
-class NestRule(CompoundRule):
-    spec = ("[nest] (circle | box | ticks | quotes | hexy | backticks | diamond) [<format_rule>]")
-    extras = [format_rule]
-
-    def _process_recognition(self, node, extras):
-        words = node.words()
-        print words
-
-        if words[0] == 'nest':
-            closure = enclosures[words[1]]
-            event = Events("text->%s;key->code=123" % closure)
-            if 'format_rule' in extras:
-                event += extras['format_rule']
-        else:
-            closure = enclosures[words[0]]
-            event = Events("text->%s" % closure)
-
-        event.execute()
-
-
 class MultipleSymbolsRule(CompoundRule):
     spec = ("[aces] <symbols_letters> [<n>]")
     extras = [Alternative([case_alphabet_rule, alphabet_rule, symbols_rule], name="symbols_letters"), IntegerRef("n", 1, 10)]
@@ -299,19 +281,8 @@ class MultipleSymbolsRule(CompoundRule):
         events.execute()
 
 
-class LiteralRule(CompoundRule):
-  spec = "form <format_rule>"
-
-  extras = [format_rule]
-
-  def _process_recognition(self, node, extras):
-    extras["format_rule"].execute()
-
-
 grammar.add_rule(MacCommand())
 grammar.add_rule(MultipleSymbolsRule())
-#grammar.add_rule(LiteralRule())
-grammar.add_rule(NestRule())
 grammar.add_rule(RepeatRule())
 
 
