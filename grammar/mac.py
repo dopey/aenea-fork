@@ -57,7 +57,7 @@ sequence_command_table = {
     "nest quotes":      Events('text->"";key->code=123'),
     "backticks":        Events("text->``"),
     "nest backticks":   Events("text->``;key->code=123"),
-    "hexy lines":       Events("text->{}") + Events("text->\n;key->key=escape;key->key=o&modifier=shift"),
+    "hexy lines":       Events("text->{};key->code=123") + Events("text->\n;key->key=escape;key->key=o&modifier=shift"),
 }
 
 #---------------------------------------------------------------------------
