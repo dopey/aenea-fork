@@ -118,7 +118,7 @@ class VimTextManipulation(MappingRule):
 
     #COPY
     #---------------------#
-    "copy [<n>]": Events("number->%(n)d;key->key=y&times=2"),
+    "copy [<n>]": escape + Events("number->%(n)d;key->key=y&times=2"),
     "copy line [<text>]": escape + jump + Events("key->key=y&times=2"),
     "from [<text>] copy [<n>]": escape + jump + Events("number->%(n)d;key->key=y&times=2"),
     "from [<text>] copy jump [<text2>]": escape + jump + Events("key->key=v&modifier=shift") + Events("number->%(text2)s&modifiers=text;key->key=g&times=2") + Events("key->key=y"),
