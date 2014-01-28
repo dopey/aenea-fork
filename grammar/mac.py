@@ -13,7 +13,8 @@ grammar = Grammar("mac", context=mac_context)
 submit = Events("key->code=36")
 
 clear = Events("key->code=51&modifier=command")
-escape = Events("key->code=53")
+escape = Events("key->key=escape")
+save = escape + Events("text->:w\n")
 
 sequence_command_table = {
     "up [<n>]": Events("key->code=126&times=%(n)d"),
@@ -21,6 +22,9 @@ sequence_command_table = {
     "left [<n>]": Events("key->code=123&times=%(n)d"),
     "right [<n>]": Events("key->code=124&times=%(n)d"),
     "space [<n>]": Events("key->key=space&times=%(n)d"),
+    "tab [<n>]":        Events("key->key=tab&times=%(n)d"),
+    "dot":              Events("key->key=."),
+    "drip":             Events("key->key=,"),
     "dribble":          Events("key->key=,;key->key=space"),
     "colon equal":     Events("key->key=space;key->code=41&modifier=shift;key->code=24;key->key=space"),
     "equal [<n>]":     Events("key->key=space;key->code=24&times=%(n)d;key->key=space"),
@@ -32,7 +36,10 @@ sequence_command_table = {
     "less equal":             Events('key->key=space;key->key=,&modifier=shift;key->code=24;key->key=space'),
     "right arrow":      Events('text->-;text->>'),
     "left arrow":      Events('text-><;text->-'),
-    "escape":             escape,
+    "escape":           escape,
+    "insert":           Events('key->key=i'),
+    "after":            Events('key->code=124;key->key=i'),
+    "save":             save,
     "plus":             Events('key->key=space;key->code=24&modifier=shift;key->key=space'),
     "plus equal":      Events("key->key=space;key->code=24&modifier=shift;key->code=24;key->key=space"),
     "minus":             Events('key->key=space;key->code=27;key->key=space'),
